@@ -459,6 +459,38 @@
         MINI_IMG.LEFT.src = "Mini_left.png";
         MINI_IMG.RIGHT.src = "Mini_right.png";
 
+// ---------------------------------------------------------
+// Celebration Mini (plush swing animation)
+// ---------------------------------------------------------
+
+let miniFrames = [
+    loadImage("mini_swing_1.png"),
+    loadImage("mini_swing_2.png"),
+    loadImage("mini_swing_3.png"),
+    loadImage("mini_swing_4.png"),
+    loadImage("mini_swing_5.png"),
+    loadImage("mini_swing_4.png"),
+    loadImage("mini_swing_3.png"),
+    loadImage("mini_swing_2.png")
+];
+
+let miniAlpha = 0;
+let miniFrameIndex = 0;
+let miniFrameTimer = 0;
+
+// scale (optional)
+let w = 180;
+let h = 180;
+
+function updateMiniCelebration(dt) {
+    miniFrameTimer += dt;
+    if (miniFrameTimer > 240) {
+        miniFrameTimer = 0;
+        miniFrameIndex = (miniFrameIndex + 1) % miniFrames.length;
+    }
+}
+
+
         // ---------------------------------------------------------
         // Artemis Image (single direction)
         // ---------------------------------------------------------
@@ -901,6 +933,10 @@
             if (dist < TILE_SIZE * 0.5) {
                 handlePacmanDeath();
             }
+            // Update Mini's tile position for minimap & collision
+            MINI.worldCol = Math.floor(MINI.x / TILE_SIZE);
+            MINI.worldRow = Math.floor(MINI.y / TILE_SIZE);
+
         }
 
 
@@ -952,23 +988,17 @@
         }
  */
 
-        function drawMini() {
-            const dir = MINI.direction.toUpperCase();
-            const img = MINI_IMG[dir] || MINI_IMG.DOWN;
+function drawMini() {
+    const dir = MINI.direction.toUpperCase();
+    const img = MINI_IMG[dir] || MINI_IMG.DOWN;
 
-            // Convert world → screen
-            const screenX = MINI.x - CAMERA.col * TILE_SIZE;
-            const screenY = MINI.y - CAMERA.row * TILE_SIZE;
+    const size = TILE_SIZE * SCALE_MINI;
 
-            // Plush scale
-            const size = TILE_SIZE * SCALE_MINI;
+    const drawX = MINI.x - size / 2;
+    const drawY = MINI.y - size / 2 + 4;
 
-            // Plush offset (weighted plush drop)
-            const drawX = screenX - size / 2;
-            const drawY = screenY - size / 2 + 4;
-
-            ctx.drawImage(img, drawX, drawY, size, size);
-        }
+    ctx.drawImage(img, drawX, drawY, size, size);
+}
 
         /* =========================================================
             Reordered inside Block 2 - End of Block 5M.4
@@ -2520,6 +2550,59 @@ function drawVisibleWorld() {
     ctx.restore();
 }
 
+// GLOBAL — define once
+const LAMP_OFFSET = {
+    UP:    { x: 0,  y: -TILE_SIZE * 0.4 },
+    DOWN:  { x: 0,  y: +TILE_SIZE * 0.4 },
+    LEFT:  { x: -TILE_SIZE * 0.4, y: 0 },
+    RIGHT: { x: +TILE_SIZE * 0.4, y: 0 }
+};
+
+function drawLampBeam() {
+    if (!isNight || !pacmanIsVisible()) return;
+    if (!pacman.direction) return;
+
+    const dir = pacman.direction.toUpperCase();
+    if (!LAMP_OFFSET[dir]) return;
+
+    ctx.save();
+
+    ctx.translate(pacman.x, pacman.y);
+
+    const off = LAMP_OFFSET[dir];
+    const lanternX = off.x * 0.4;
+    const lanternY = off.y * 0.4;
+
+    ctx.translate(lanternX, lanternY);
+
+    let angle = 0;
+    if (dir === "UP") angle = -Math.PI / 2;
+    else if (dir === "DOWN") angle = Math.PI / 2;
+    else if (dir === "LEFT") angle = Math.PI;
+    else angle = 0;
+
+    ctx.rotate(angle - Math.PI / 2);
+
+    const beamLength = TILE_SIZE * 3.5;
+    const beamWidth  = TILE_SIZE * 1.6;
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, beamLength);
+    gradient.addColorStop(0,   'rgba(255, 255, 200, 0.9)');
+    gradient.addColorStop(0.2, 'rgba(255, 255, 200, 0.5)');
+    gradient.addColorStop(1,   'rgba(255, 255, 200, 0.0)');
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-beamWidth/2, beamLength);
+    ctx.lineTo(+beamWidth/2, beamLength);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+}
+
+
 //----------
 
 if (DEBUG_SHOW_EXIT && exitPos) {
@@ -3740,22 +3823,17 @@ if (DEBUG_SHOW_EXIT && exitPos) {
                 } */
 
 
-        function drawPacman() {
-            const img = getIkarusImage();
+ function drawPacman() {
+    const img = getIkarusImage();
 
-            // Convert world → screen
-            const screenX = pacman.x - CAMERA.col * TILE_SIZE;
-            const screenY = pacman.y - CAMERA.row * TILE_SIZE;
+    // world coords directly
+    const size = TILE_SIZE * SCALE_IKARUS;
 
-            // Apply scale
-            const size = TILE_SIZE * SCALE_IKARUS;
+    const drawX = pacman.x - size / 2;
+    const drawY = pacman.y - size / 2;
 
-            // Center the sprite on the tile
-            const drawX = screenX - size / 2;
-            const drawY = screenY - size / 2;
-
-            ctx.drawImage(img, drawX, drawY, size, size);
-        }
+    ctx.drawImage(img, drawX, drawY, size, size);
+}
 
         function drawMessage(text) {
             ctx.save();
@@ -3788,7 +3866,6 @@ if (DEBUG_SHOW_EXIT && exitPos) {
 
         function drawPixelSprite(ctx, sprite, scale) {
             const { pixels, palette, width, height } = sprite;
-
             ctx.save();
             ctx.scale(scale, scale);
 
@@ -3976,6 +4053,8 @@ if (DEBUG_SHOW_EXIT && exitPos) {
                     moving: true,
                     targetFn: behavior.targetFn
                 };
+g.img = behavior.img;
+
 
                 const { x, y } = getCenterPixel(g.worldCol, g.worldRow);
                 g.x = x;
@@ -4076,86 +4155,73 @@ if (DEBUG_SHOW_EXIT && exitPos) {
         }
 
         // --- DRAW GHOST (CAMERA-RELATIVE) ---
-        function drawGhost(ghost) {
-            ctx.save();
+function drawGhost(ghost) {
+    ctx.save();
 
-            // ---------------------------------------------------------
-            // 1. SHIMMER LOGIC (normal ghosts only)
-            // ---------------------------------------------------------
-            // Pac-Ghost and Minotaur skip shimmer entirely
-            if (!ghost.isPacGhost && ghost.name !== "Minotaur") {
-                ghost.shimmerTimer += ghost.shimmerSpeed * (1 / 60);
-                const opacity = 0.15 + 0.15 * Math.sin(ghost.shimmerTimer);
-                ctx.globalAlpha = opacity;
-            } else {
-                ctx.globalAlpha = 1.0;
-            }
+    // WORLD COORDS → CAMERA SPACE handled by render loop
+    const size = TILE_SIZE * SCALE_GHOST;
+    const radius = TILE_SIZE * 0.35;
 
-            // ---------------------------------------------------------
-            // 2. PAC-GHOST OVERRIDE (full visibility)
-            // ---------------------------------------------------------
-            if (ghost.isPacGhost) {
-                ctx.globalAlpha = ghost.alpha !== undefined ? ghost.alpha : 1.0;
-            }
+    // Position ghost at its world coordinates
+    ctx.translate(ghost.x, ghost.y);
 
-            // ---------------------------------------------------------
-            // 3. CAMERA TRANSLATION
-            // ---------------------------------------------------------
-            const screenX = ghost.x - CAMERA.col * TILE_SIZE;
-            const screenY = ghost.y - CAMERA.row * TILE_SIZE;
-            ctx.translate(screenX, screenY);
+    // 1. SHIMMER (normal ghosts only)
+    if (!ghost.isPacGhost && ghost.name !== "Minotaur") {
+        ghost.shimmerTimer += ghost.shimmerSpeed * (1 / 60);
+        const opacity = 0.15 + 0.15 * Math.sin(ghost.shimmerTimer);
+        ctx.globalAlpha = opacity;
+    } else {
+        ctx.globalAlpha = 1.0;
+    }
 
-            // ---------------------------------------------------------
-            // 4. DANCE OFFSET
-            // ---------------------------------------------------------
-            if (ghost.danceOffset) {
-                ctx.translate(ghost.danceOffset, 0);
-            }
+    // 2. PAC-GHOST OVERRIDE
+    if (ghost.isPacGhost) {
+        ctx.globalAlpha = ghost.alpha !== undefined ? ghost.alpha : 1.0;
+    }
 
-            // ---------------------------------------------------------
-            // 5. NIGHT GLOW
-            // ---------------------------------------------------------
-            if (isNight) {
-                const dx = ghost.x - pacman.x;
-                const dy = ghost.y - pacman.y;
-                const dist = Math.hypot(dx, dy);
-                const intensity = Math.max(0, 1 - dist * 0.12);
-                ctx.shadowColor = ghost.color;
-                ctx.shadowBlur = 12 + intensity * 25;
-            } else {
-                ctx.shadowBlur = 0;
-            }
+    // 3. DANCE OFFSET
+    if (ghost.danceOffset) {
+        ctx.translate(ghost.danceOffset, 0);
+    }
 
-            // ---------------------------------------------------------
-            // 6. BODY
-            // ---------------------------------------------------------
-            ctx.fillStyle = ghost.color;
-            ctx.beginPath();
-            ctx.arc(0, 0, TILE_SIZE * 0.35, 0, Math.PI * 2);
-            ctx.fill();
+    // 4. NIGHT GLOW
+    if (isNight) {
+        const dx = ghost.x - pacman.x;
+        const dy = ghost.y - pacman.y;
+        const dist = Math.hypot(dx, dy);
+        const intensity = Math.max(0, 1 - dist * 0.12);
+        ctx.shadowColor = ghost.color;
+        ctx.shadowBlur = 12 + intensity * 25;
+    } else {
+        ctx.shadowBlur = 0;
+    }
 
-            // ---------------------------------------------------------
-            // 7. EYES
-            // ---------------------------------------------------------
-            const eyeOffsetX = TILE_SIZE * 0.12;
-            const eyeOffsetY = TILE_SIZE * 0.10;
-            const eyeRadius = TILE_SIZE * 0.10;
-            const pupilRadius = TILE_SIZE * 0.04;
+    // 5. BODY
+    ctx.fillStyle = ghost.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
 
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(-eyeOffsetX, -eyeOffsetY, eyeRadius, 0, Math.PI * 2);
-            ctx.arc(eyeOffsetX, -eyeOffsetY, eyeRadius, 0, Math.PI * 2);
-            ctx.fill();
+    // 6. EYES
+    const eyeOffsetX = TILE_SIZE * 0.12;
+    const eyeOffsetY = TILE_SIZE * 0.10;
+    const eyeRadius = TILE_SIZE * 0.10;
+    const pupilRadius = TILE_SIZE * 0.04;
 
-            ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(-eyeOffsetX, -eyeOffsetY, pupilRadius, 0, Math.PI * 2);
-            ctx.arc(eyeOffsetX, -eyeOffsetY, pupilRadius, 0, Math.PI * 2);
-            ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(-eyeOffsetX, -eyeOffsetY, eyeRadius, 0, Math.PI * 2);
+    ctx.arc(eyeOffsetX, -eyeOffsetY, eyeRadius, 0, Math.PI * 2);
+    ctx.fill();
 
-            ctx.restore();
-        }
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(-eyeOffsetX, -eyeOffsetY, pupilRadius, 0, Math.PI * 2);
+    ctx.arc(eyeOffsetX, -eyeOffsetY, pupilRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
 
         /* =========================================================
            End of Block 6 — MVP8
@@ -4463,46 +4529,76 @@ if (DEBUG_SHOW_EXIT && exitPos) {
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // --- GAME OVER: custom ghost chorus ---
-            if (window.gameState === 'GAME_OVER') {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+// --- GAME OVER: custom ghost chorus ---
+if (window.gameState === 'GAME_OVER') {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                const center = getCenterPixel(5, 11);
-                const spacing = TILE_SIZE * 1.2;
+    const center = getCenterPixel(5, 11);
+    const spacing = TILE_SIZE * 1.2;
 
-                if (pacGhostJoinProgress < 1) {
-                    pacGhostJoinProgress += 0.02;
-                }
+    // Yellow ghost joining animation
+    if (pacGhostJoinProgress < 1) {
+        pacGhostJoinProgress += 0.02;
+    }
 
-                const joinOffsetY = TILE_SIZE * (1 - pacGhostJoinProgress);
+    const joinOffsetY = TILE_SIZE * (1 - pacGhostJoinProgress);
 
-                for (let i = 0; i < 5; i++) {
-                    let ghost;
-                    const baseY = center.y;
+    // 1. Draw ghost chorus
+    for (let i = 0; i < 5; i++) {
+        let ghost;
+        const baseY = center.y;
 
-                    if (i === 2) {
-                        ghost = {
-                            x: center.x + (i - 2) * spacing,
-                            y: baseY + joinOffsetY,
-                            color: '#facc15',
-                            danceOffset: Math.sin(frameCounter * 0.2 + i) * TILE_SIZE * 0.3
-                        };
-                    } else {
-                        const color = GHOST_COLORS[(i < 2 ? i : i - 1) % GHOST_COLORS.length];
-                        ghost = {
-                            x: center.x + (i - 2) * spacing,
-                            y: baseY,
-                            color,
-                            danceOffset: Math.sin(frameCounter * 0.2 + i) * TILE_SIZE * 0.3
-                        };
-                    }
+        if (i === 2) {
+            // Yellow ghost (Ikarus)
+            ghost = {
+                x: center.x + (i - 2) * spacing,
+                y: baseY + joinOffsetY,
+                color: '#facc15',
+                danceOffset: Math.sin(frameCounter * 0.2 + i) * TILE_SIZE * 0.3
+            };
+        } else {
+            const color = GHOST_COLORS[(i < 2 ? i : i - 1) % GHOST_COLORS.length];
+            ghost = {
+                x: center.x + (i - 2) * spacing,
+                y: baseY,
+                color,
+                danceOffset: Math.sin(frameCounter * 0.2 + i) * TILE_SIZE * 0.3
+            };
+        }
 
-                    drawGhost(ghost);
-                }
+        drawGhost(ghost);
+    }
 
-                drawMessage("One of us, One of us!");
-                return;
-            }
+    // 2. Draw Mini BEHIND the chorus (Option B)
+    // Fade in AFTER yellow ghost joins
+    if (pacGhostJoinProgress >= 1) {
+        miniAlpha = Math.min(1, miniAlpha + 0.02);
+
+        ctx.save();
+        ctx.globalAlpha = miniAlpha;
+
+        updateMiniCelebration(16);
+        const img = miniFrames[miniFrameIndex];
+
+        const scale = 0.25;  // 25% size
+        const w = img.width * scale;
+        const h = img.height * scale;
+
+
+        // Mini centered horizontally
+        const miniX = canvas.width / 2;
+
+        // Mini above the ghost line
+        const miniY = center.y - TILE_SIZE * 4.5;
+
+        ctx.drawImage(img, miniX - w/2, miniY - h/2, w, h);
+        ctx.restore();
+    }
+
+    // 3. Message
+    drawMessage("One of us, One of us!");
+    return;
+}
 
 
             // Wing moment override
@@ -4565,6 +4661,34 @@ if (DEBUG_SHOW_EXIT && exitPos) {
                     );
                 }
 
+                // Mini
+                ctx.fillStyle = "white";
+                ctx.fillRect(
+                    mapX + MINI.worldCol * scale,
+                    mapY + MINI.worldRow * scale,
+                    scale, scale
+                );
+
+
+
+                // Key
+                    ctx.fillStyle = "gold";
+                    ctx.fillRect(
+                        mapX + keyPos.c * scale,
+                        mapY + keyPos.r * scale,
+                        scale, scale
+                    );
+
+                // Door
+                ctx.fillStyle = "blue";
+                ctx.fillRect(
+                    mapX + exitPos.c * scale,
+                    mapY + exitPos.r * scale,
+                    scale, scale
+                );
+
+
+
                 // Camera window
                 ctx.strokeStyle = "white";
                 ctx.lineWidth = 1;
@@ -4588,59 +4712,90 @@ if (DEBUG_SHOW_EXIT && exitPos) {
                 drawSkyIconSprite(ctx);
             }
 
-            // 4. ACTORS — DEATH PHASES ALWAYS DRAW, EVEN DURING FADES
-            if (deathPhase === 'DYING' ||
-                deathPhase === 'RETURNING' ||
-                deathPhase === 'IRIS_CLOSING' ||
-                deathPhase === 'IRIS_OPENING' ||
-                deathPhase === 'RESPAWNING') {
+           // 4. ACTORS — DEATH PHASES ALWAYS DRAW, EVEN DURING FADES
+ctx.save();
+ctx.translate(-CAMERA.col * TILE_SIZE, -CAMERA.row * TILE_SIZE);
+
+if (deathPhase === 'DYING' ||
+    deathPhase === 'RETURNING' ||
+    deathPhase === 'IRIS_CLOSING' ||
+    deathPhase === 'IRIS_OPENING' ||
+    deathPhase === 'RESPAWNING') {
+
+    drawMini();
+    GHOSTS.forEach(drawGhost);
+
+    if (deathPhase === 'DYING' || deathPhase === 'RETURNING') {
+        const pacGhost = getPacGhostObject();
+        drawGhost(pacGhost);
+    }
+
+    if (deathPhase === 'RESPAWNING') {
+        if (spawnPop > 0) {
+            const radius = (10 - spawnPop) * 3;
+            const alpha = spawnPop / 10;
+
+            ctx.save();
+            ctx.strokeStyle = `rgba(250, 204, 21, ${alpha})`;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(pacman.x, pacman.y, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        ctx.save();
+        ctx.globalAlpha = pacmanFade;
+        drawPacman();
+        ctx.restore();
+    }
+
+} else {
+
+    console.log("ROOM STATE", roomTransitionState, roomFade);
+    if (roomTransitionState === 'NONE' && roomFade === 0) {
+
+        drawMini();
+        GHOSTS.forEach(drawGhost);
+
+        if (pacmanIsVisible()) {
+            drawLampBeam();   // cone first
+            drawPacman();     // kid on top
+        }
+    }
+}
+
+ctx.restore(); // end actors camera block
+
+// --- RETURNING MESSAGE (draw early so nothing overrides it) ---
+if (deathPhase === 'RETURNING') {
+    drawMessage(getDeathMessage());
+}
 
 
-                // Mini + ghosts always draw during death
-                drawMini();
-                GHOSTS.forEach(drawGhost);
+// --- CELEBRATION: draw plush Mini in screen space ---
+//if (deathPhase === 'CELEBRATION') {
 
-                // DYING + RETURNING → draw Pac-Ghost
-                if (deathPhase === 'DYING' || deathPhase === 'RETURNING') {
-                    const pacGhost = getPacGhostObject();
-                    drawGhost(pacGhost);
-                }
+//    miniAlpha = Math.min(1, miniAlpha + 0.01);
+//    updateMiniCelebration(16);
 
-                // RESPAWNING → draw fading-in kid
-                if (deathPhase === 'RESPAWNING') {
+//    ctx.save();
+//    ctx.globalAlpha = miniAlpha;
 
-                    if (spawnPop > 0) {
-                        const radius = (10 - spawnPop) * 3;
-                        const alpha = spawnPop / 10;
+//    const img = miniFrames[miniFrameIndex];
+//    const w = img.width;
+//    const h = img.height;
 
-                        ctx.save();
-                        ctx.strokeStyle = `rgba(250, 204, 21, ${alpha})`;
-                        ctx.lineWidth = 4;
-                        ctx.beginPath();
-                        ctx.arc(pacman.x, pacman.y, radius, 0, Math.PI * 2);
-                        ctx.stroke();
-                        ctx.restore();
-                    }
+    // compute AFTER canvas exists
+ //   const miniX = canvas.width / 2;
+ //   const miniY = canvas.height / 2 + 40;
 
-                    // Draw fading-in Ikarus
-                    ctx.save();
-                    ctx.globalAlpha = pacmanFade;
-                    drawPacman();
-                    ctx.restore();
-                }
+//    ctx.drawImage(img, miniX - w/2, miniY - h/2, w, h);
 
-            } else {
+//    ctx.restore();
+//}
 
-                // NORMAL GAMEPLAY ACTORS — ONLY WHEN ROOM IS STABLE
-                if (roomTransitionState === 'NONE' && roomFade === 0) {
 
-                    drawMini();
-                    GHOSTS.forEach(drawGhost);
-
-                    if (pacmanIsVisible()) {
-                        drawPacman();
-                    }
-                }
             }
 
             // 6. FLASH EFFECT
@@ -4691,7 +4846,7 @@ if (DEBUG_SHOW_EXIT && exitPos) {
                 ctx.fill();
                 ctx.restore();
             }
-        }
+        
 
         /* ---------------------------------------------------------
            GAME LOOP
@@ -5015,6 +5170,9 @@ if (DEBUG_SHOW_EXIT && exitPos) {
                     pacmanFade = 0;        // <-- HIDE IKARUS COMPLETELY
                     initializeGhosts();    // prepare chorus
                     pacman.isGhost = false;
+
+//                    miniAlpha = 0;   // <-- Step 3: reset fade-in
+//                        miniVisible = false;  // <-- HIDE WORLD MINI IMMEDIATELY
                 }
 
                 if (deathTimer >= 60) {
