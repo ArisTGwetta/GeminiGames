@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Hero & DM Tool</title>
+    <style>
+        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --crit: #fbbf24; --fail: #ef4444; --hp: #10b981; --dm: #f43f5e; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 10px; margin: 0; }
+        .container { width: 100%; max-width: 600px; background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        
+        /* Layout Parts */
+        .status-bar { background: #0f172a; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #334155; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 10px; overflow-x: auto; }
+        .tab-btn { flex: 1; padding: 10px; cursor: pointer; border: none; background: #334155; color: white; border-radius: 6px; font-weight: bold; white-space: nowrap; font-size: 0.8rem; }
+        .tab-btn.active { background: var(--primary); opacity: 1; }
+        .tab-btn.dm-tab.active { background: var(--dm); }
+
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* Skill & Monster Cards */
+        .card { background: #334155; padding: 10px; margin-bottom: 8px; border-radius: 8px; border-left: 4px solid var(--primary); }
+        .dm-card { border-left-color: var(--dm); }
+        input { background: #0f172a; border: 1px solid #475569; color: white; padding: 4px; border-radius: 4px; font-size: 0.9rem; }
+        
+        /* DM Screen Specific */
+        .dm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .monster-slot { background: #1e293b; padding: 10px; border-radius: 6px; border: 1px solid #475569; position: relative; }
+        .hp-bar-mini { height: 4px; background: #444; margin: 5px 0; border-radius: 2px; overflow: hidden; }
+        .hp-fill { height: 100%; background: var(--hp); transition: 0.3s; }
+        .atk-btn { width: 100%; margin-top: 5px; background: #475569; border: none; color: white; padding: 5px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+
+        #log { margin-top: 15px; padding: 10px; background: #000; color: #94a3b8; font-family: monospace; height: 120px; overflow-y: auto; border-radius: 6px; font-size: 0.8rem; border: 1px solid #334155; }
+        .log-entry { border-bottom: 1px dotted #222; padding: 2px 0; }
+        
+        /* Animations */
+        @keyframes shake { 0%, 100% {transform:translateX(0)} 25% {transform:translateX(-4px)} 75% {transform:translateX(4px)} }
+        .shake { animation: shake 0.2s ease-in-out 2; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="app">
+    <div class="status-bar" id="player-status">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <b>HP: <span id="curHP" style="color:var(--hp)">20</span> / <input type="number" id="maxHP" value="20" style="width:40px; background:none; border:none; color:inherit;"></b>
+            <input type="number" id="hpVal" placeholder="+/-" style="width:50px">
+            <div>
+                <button onclick="adjHP(true)" style="background:var(--hp); border:none; color:white; padding:5px 10px; border-radius:4px;">Heal</button>
+                <button onclick="adjHP(false)" style="background:var(--fail); border:none; color:white; padding:5px 10px; border-radius:4px;">Dmg</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('skills', this)">⚔️ Skills</button>
+        <button class="tab-btn" onclick="showTab('quick', this)">🎲 Dice</button>
+        <button class="tab-btn dm-tab" onclick="showTab('dm', this)">👺 DM Screen</button>
+    </div>
+
+    <div id="skills" class="panel active">
+        <div id="skills-cont"></div>
+        <button onclick="saveAll()" style="width:100%; padding:10px; background:var(--hp); border:none; color:white; border-radius:6px; margin-top:10px;">💾 Save Data</button>
+    </div>
+
+    <div id="quick" class="panel">
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">
+            <button class="tab-btn" onclick="rollRaw(4)">d4</button>
+            <button class="tab-btn" onclick="rollRaw(6)">d6</button>
+            <button class="tab-btn" onclick="rollRaw(8)">d8</button>
+            <button class="tab-btn" onclick="rollRaw(10)">d10</button>
+            <button class="tab-btn" onclick="rollRaw(12)">d12</button>
+            <button class="tab-btn" onclick="rollRaw(20)">d20</button>
+        </div>
+    </div>
+
+    <div id="dm" class="panel">
+        <div style="background:#0f172a; padding:10px; border-radius:8px; margin-bottom:10px;">
+            <small>Spawn Monster:</small><br>
+            <input id="mName" placeholder="Name" style="width:80px">
+            <input id="mHP" type="number" placeholder="HP" style="width:40px">
+            <input id="mAtk" placeholder="1d20+2" style="width:60px">
+            <button onclick="spawnMonster()" style="background:var(--dm); color:white; border:none; padding:5px; border-radius:4px;">Add to Screen</button>
+        </div>
+        <div class="dm-grid" id="dm-grid"></div>
+        <button onclick="document.getElementById('dm-grid').innerHTML=''" style="width:100%; margin-top:10px; background:#475569; border:none; color:white; border-radius:4px; padding:5px;">Clear Battlefield</button>
+    </div>
+
+    <div id="log"></div>
+</div>
+
+<script>
+    const log = document.getElementById('log');
+
+    function init() {
+        const saved = JSON.parse(localStorage.getItem('rpg_skills')) || [];
+        const cont = document.getElementById('skills-cont');
+        for (let i = 0; i < 6; i++) {
+            const d = saved[i] || { name: `Skill ${i+1}`, c: 1, s: 20, m: 0 };
+            cont.innerHTML += `<div class="card" id="s-${i}">
+                <input class="name-input" value="${d.name}" style="width:100%; border:none; background:none; color:white; font-weight:bold; margin-bottom:5px;">
+                <input type="number" class="c" value="${d.c}" style="width:30px"> d <input type="number" class="s" value="${d.s}" style="width:30px"> 
+                + <input type="number" class="m" value="${d.m}" style="width:30px">
+                <button onclick="rollSkill(${i})" style="float:right; background:var(--primary); color:white; border:none; border-radius:4px; padding:4px 10px;">Roll</button>
+            </div>`;
+        }
+        const stats = JSON.parse(localStorage.getItem('rpg_stats')) || {cur:20, max:20};
+        document.getElementById('curHP').innerText = stats.cur;
+        document.getElementById('maxHP').value = stats.max;
+    }
+
+    function adjHP(isHeal) {
+        let cur = parseInt(document.getElementById('curHP').innerText);
+        let val = parseInt(document.getElementById('hpVal').value) || 0;
+        let max = parseInt(document.getElementById('maxHP').value);
+        cur = isHeal ? Math.min(max, cur + val) : Math.max(0, cur - val);
+        document.getElementById('curHP').innerText = cur;
+        document.getElementById('hpVal').value = '';
+        saveAll();
+    }
+
+    function rollSkill(idx) {
+        const card = document.getElementById(`s-${idx}`);
+        const n = card.querySelector('.name-input').value;
+        const c = parseInt(card.querySelector('.c').value);
+        const s = parseInt(card.querySelector('.s').value);
+        const m = parseInt(card.querySelector('.m').value);
+        let total = 0;
+        for(let i=0; i<c; i++) total += Math.floor(Math.random()*s)+1;
+        addLog(`<b>${n}</b>: ${total} + ${m} = <b>${total+m}</b>`);
+    }
+
+    function rollRaw(s) {
+        const r = Math.floor(Math.random()*s)+1;
+        addLog(`d${s}: <b>${r}</b>`);
+    }
+
+    // DM Logic
+    function spawnMonster() {
+        const grid = document.getElementById('dm-grid');
+        if(grid.children.length >= 8) return alert("Max 8 monsters!");
+        const name = document.getElementById('mName').value || "Enemy";
+        const hp = document.getElementById('mHP').value || 10;
+        const atk = document.getElementById('mAtk').value || "1d20";
+        
+        const id = Date.now();
+        grid.innerHTML += `
+            <div class="monster-slot" id="m-${id}">
+                <div style="font-size:0.7rem; font-weight:bold;">${name}</div>
+                <div class="hp-bar-mini"><div class="hp-fill" id="fill-${id}" style="width:100%"></div></div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span id="cur-${id}" style="font-size:0.8rem">${hp}</span>
+                    <input type="number" id="adj-${id}" placeholder="+/-" style="width:35px; font-size:0.7rem">
+                </div>
+                <button class="atk-btn" onclick="monsterAtk('${name}', '${atk}')">Atk: ${atk}</button>
+                <div style="display:flex; gap:2px; margin-top:4px;">
+                    <button onclick="adjM(${id}, ${hp}, true)" style="flex:1; background:var(--hp); border:none; font-size:0.6rem; color:white; border-radius:2px;">+</button>
+                    <button onclick="adjM(${id}, ${hp}, false)" style="flex:1; background:var(--fail); border:none; font-size:0.6rem; color:white; border-radius:2px;">-</button>
+                </div>
+            </div>`;
+    }
+
+    function adjM(id, max, isHeal) {
+        const curEl = document.getElementById(`cur-${id}`);
+        const valEl = document.getElementById(`adj-${id}`);
+        const fill = document.getElementById(`fill-${id}`);
+        let cur = parseInt(curEl.innerText);
+        let adj = parseInt(valEl.value) || 0;
+        cur = isHeal ? Math.min(max, cur + adj) : Math.max(0, cur - adj);
+        curEl.innerText = cur;
+        fill.style.width = (cur/max * 100) + "%";
+        valEl.value = '';
+        if(cur === 0) document.getElementById(`m-${id}`).style.opacity = "0.4";
+        else document.getElementById(`m-${id}`).style.opacity = "1";
+    }
+
+    function monsterAtk(name, formula) {
+        // Simple parser for "XdY+Z"
+        try {
+            const parts = formula.toLowerCase().split('d');
+            const count = parseInt(parts[0]) || 1;
+            const sidePart = parts[1].split('+');
+            const sides = parseInt(sidePart[0]);
+            const mod = parseInt(sidePart[1]) || 0;
+            let total = 0;
+            for(let i=0; i<count; i++) total += Math.floor(Math.random()*sides)+1;
+            addLog(`<span style="color:var(--dm)">[DM] ${name} attacks: <b>${total+mod}</b></span>`);
+        } catch(e) { addLog("Invalid Attack Formula"); }
+    }
+
+    function addLog(m) {
+        const d = document.createElement('div');
+        d.className = 'log-entry';
+        d.innerHTML = `> ${m}`;
+        log.prepend(d);
+    }
+
+    function showTab(id, btn) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function saveAll() {
+        const data = [];
+        for(let i=0; i<6; i++) {
+            const c = document.getElementById(`s-${i}`);
+            data.push({
+                name: c.querySelector('.name-input').value,
+                c: c.querySelector('.c').value,
+                s: c.querySelector('.s').value,
+                m: c.querySelector('.m').value
+            });
+        }
+        localStorage.setItem('rpg_skills', JSON.stringify(data));
+        localStorage.setItem('rpg_stats', JSON.stringify({
+            cur: parseInt(document.getElementById('curHP').innerText),
+            max: parseInt(document.getElementById('maxHP').value)
+        }));
+        addLog("System Saved.");
+    }
+
+    init();
+</script>
+</body>
+</html>
