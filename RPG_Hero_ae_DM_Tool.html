@@ -3,43 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Legend: Boar Crest Edition</title>
+    <title>House of the Boar: RPG App</title>
     
-    <link rel="apple-touch-icon" href="https://i.ibb.co/v4m0sB5/boar-gold.png">
-    <link rel="icon" href="https://i.ibb.co/v4m0sB5/boar-gold.png">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/150/fbbf24/shield.png">
+    <link rel="icon" href="https://img.icons8.com/ios-filled/150/fbbf24/shield.png">
 
     <style>
         :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #fbbf24; --hp: #10b981; --dm: #f43f5e; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; overflow-x: hidden; }
         .container { width: 100%; max-width: 500px; margin: auto; background: var(--card); padding: 15px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; min-height: 90vh; }
 
-        /* CREST SLOT */
-        .crest-slot { position: absolute; top: 15px; right: 15px; width: 50px; height: 50px; border-radius: 10px; border: 2px solid var(--accent); background: white; z-index: 5; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        /* THE CREST */
+        .crest-slot { position: absolute; top: 15px; right: 15px; width: 55px; height: 55px; border-radius: 8px; border: 2px solid var(--accent); background: rgba(255,255,255,0.1); z-index: 5; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         .crest-slot img { width: 100%; height: 100%; object-fit: contain; }
         
-        /* SCROLLABLE TABS */
         .tabs-container { overflow-x: auto; white-space: nowrap; margin-bottom: 12px; border-bottom: 1px solid #334155; -webkit-overflow-scrolling: touch; }
-        .tab-btn { display: inline-block; padding: 8px 15px; cursor: pointer; border: none; background: transparent; color: #64748b; font-weight: bold; font-size: 0.7rem; }
+        .tab-btn { display: inline-block; padding: 10px 15px; cursor: pointer; border: none; background: transparent; color: #64748b; font-weight: bold; font-size: 0.7rem; }
         .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
 
         .panel { display: none; animation: fadeIn 0.2s; }
         .panel.active { display: block; }
         @keyframes fadeIn { from {opacity: 0} to {opacity: 1} }
 
-        /* COMPACT ACTION ROW (Timer + HP) */
-        .action-row { display: grid; grid-template-columns: 80px 1fr 100px; gap: 8px; margin-bottom: 12px; align-items: center; background: #0f172a; padding: 8px; border-radius: 12px; border: 1px solid #334155; }
-        
+        /* ACTION ROW */
+        .action-row { display: grid; grid-template-columns: 70px 1fr 100px; gap: 8px; margin-bottom: 12px; align-items: center; background: #0f172a; padding: 10px; border-radius: 12px; border: 1px solid #334155; }
         .mini-timer { text-align: center; border-right: 1px solid #334155; cursor: pointer; }
-        #timer-num { font-size: 1.2rem; font-weight: 900; display: block; line-height: 1; }
-        .timer-label { font-size: 0.5rem; text-transform: uppercase; color: #64748b; }
-        .timer-low { color: var(--dm); animation: pulse 0.5s infinite; }
-        @keyframes pulse { 0% {scale: 1;} 50% {scale: 1.1;} 100% {scale: 1;} }
+        #timer-num { font-size: 1.3rem; font-weight: 900; display: block; }
+        .timer-label { font-size: 0.5rem; color: #64748b; }
+        .hp-input-wrap input { width: 100%; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 6px; text-align: center; height: 35px; }
+        .hp-btn { border: none; color: white; padding: 5px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; cursor: pointer; height: 22px; }
 
-        .hp-input-wrap { display: flex; gap: 4px; }
-        .hp-input-wrap input { width: 100%; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 6px; text-align: center; font-size: 0.9rem; }
-        .hp-btn { border: none; color: white; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; cursor: pointer; }
-
-        /* HERO LANDING */
         .hero-landing { text-align: center; padding: 10px 0; }
         #char-img-large { width: 180px; height: 180px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary); cursor: pointer; }
         
@@ -49,13 +42,8 @@
         .ability-box input { background: none; border: none; color: white; width: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; }
 
         .skill-card { background: #0f172a; padding: 10px; margin-bottom: 6px; border-radius: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid #334155; }
-        .res-win { width: 45px; height: 45px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 1.4rem; font-weight: 900; }
+        .res-win { width: 45px; height: 45px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.4rem; font-weight: 900; }
         
-        .dice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .die-btn { background: #0f172a; border: 1px solid var(--primary); border-radius: 10px; padding: 15px 5px; text-align: center; cursor: pointer; }
-        .die-btn h2 { margin: 0; font-size: 1.2rem; }
-        .die-btn span { font-size: 0.6rem; color: var(--primary); }
-
         #log { margin-top: 10px; padding: 8px; background: #000; color: #64748b; font-family: monospace; height: 60px; overflow-y: auto; border-radius: 8px; font-size: 0.6rem; }
     </style>
 </head>
@@ -63,7 +51,7 @@
 
 <div class="container">
     <div class="crest-slot">
-        <img id="family-crest" src="" alt="Crest">
+        <img id="family-crest" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 100 100'%3E%3Cpath d='M10 20 L50 10 L90 20 L90 60 C90 85 50 95 50 95 C50 95 10 85 10 60 Z' fill='none' stroke='%23fbbf24' stroke-width='5'/%3E%3C/svg%3E">
     </div>
 
     <div class="tabs-container">
@@ -79,8 +67,8 @@
         <div class="hero-landing">
             <img id="char-img-large" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23334155'/%3E%3C/svg%3E" onclick="document.getElementById('file-in').click()">
             <input type="file" id="file-in" style="display:none" accept="image/*" onchange="uploadImg(this)">
-            <h3 style="margin: 10px 0 5px 0;"><input id="char-name" placeholder="Hero Name" style="background:none; border:none; text-align:center; color:white; width:80%; border-bottom:1px solid #334155;"></h3>
-            <div style="font-size:1.1rem;">❤️ <span id="curHP">20</span> / <input type="number" id="maxHP" value="20" style="background:none; border:none; color:white; width:40px; text-align:left;"></div>
+            <h3><input id="char-name" placeholder="Hero Name" style="background:none; border:none; text-align:center; color:white; width:80%; border-bottom:1px solid #334155;"></h3>
+            <div style="font-size:1.1rem;">❤️ <span id="curHP">20</span> / <input type="number" id="maxHP" value="20" style="background:none; border:none; color:white; width:40px;"></div>
         </div>
         <div class="ability-grid">
             <div class="ability-box"><label>STR</label><input type="number" id="a-str" value="10"></div>
@@ -98,168 +86,65 @@
                 <span id="timer-num">60</span>
                 <span class="timer-label" id="timer-msg">Start</span>
             </div>
-            <div class="hp-input-wrap">
-                <input type="number" id="hp-adj" placeholder="+/-">
-            </div>
-            <div style="display:flex; flex-direction:column; gap:2px;">
+            <div class="hp-input-wrap"><input type="number" id="hp-adj" placeholder="+/-"></div>
+            <div style="display:flex; flex-direction:column; gap:3px;">
                 <button onclick="modHP(true)" class="hp-btn" style="background:var(--hp)">HEAL</button>
                 <button onclick="modHP(false)" class="hp-btn" style="background:var(--dm)">HIT</button>
             </div>
         </div>
         <div id="skill-cont"></div>
-        <button onclick="saveAll()" style="width:100%; padding:10px; background:var(--primary); border:none; color:white; border-radius:8px; font-weight:bold; margin-top:8px; font-size:0.8rem;">💾 SAVE</button>
-    </div>
-
-    <div id="dice" class="panel">
-        <div class="dice-grid">
-            <div class="die-btn" onclick="vRoll(4, this)"><h2>-</h2><span>d4</span></div>
-            <div class="die-btn" onclick="vRoll(6, this)"><h2>-</h2><span>d6</span></div>
-            <div class="die-btn" onclick="vRoll(8, this)"><h2>-</h2><span>d8</span></div>
-            <div class="die-btn" onclick="vRoll(10, this)"><h2>-</h2><span>d10</span></div>
-            <div class="die-btn" onclick="vRoll(12, this)"><h2>-</h2><span>d12</span></div>
-            <div class="die-btn" onclick="vRoll(20, this)"><h2>-</h2><span>d20</span></div>
-        </div>
-    </div>
-
-    <div id="ledg" class="panel">
-        <div style="background:#0f172a; padding:10px; border-radius:10px; border:1px solid #334155; margin-bottom:8px;">
-            <h4 style="color:var(--accent); margin:0 0 5px 0;">💰 Gold</h4>
-            <input type="number" id="gold-cur" value="0" style="width:60px;" onchange="updateGold(this)">
-            <span style="opacity:0.6; font-size:0.7rem; margin-left:10px;">Lifetime: <span id="gold-life">0</span></span>
-        </div>
-        <div style="background:#0f172a; padding:10px; border-radius:10px; border:1px solid #334155;">
-            <h4 style="color:var(--dm); margin:0 0 5px 0;">💀 Kills</h4>
-            <div id="tally-vis" style="font-size:1.2rem; color:var(--accent); min-height:20px;"></div>
-            <button onclick="addKill()" style="width:100%; padding:8px; margin-top:8px; background:none; border:1px solid var(--dm); color:var(--dm); border-radius:6px; font-size:0.7rem;">+1 Kill</button>
-        </div>
+        <button onclick="saveAll()" style="width:100%; padding:12px; background:var(--primary); border:none; color:white; border-radius:10px; font-weight:bold; margin-top:10px;">💾 SAVE PROGRESS</button>
     </div>
 
     <div id="dm" class="panel">
-        <button onclick="nuclear()" style="width:100%; padding:15px; background:orange; border:none; border-radius:10px; font-weight:900; color:black;">☢️ MASS ATTACK (10 NPCs)</button>
-    </div>
-
-    <div id="note" class="panel">
-        <textarea id="notes-area" style="width:100%; height:150px; background:#0f172a; color:white; border:1px solid #334155; border-radius:10px; padding:10px; font-size:0.8rem;"></textarea>
-        <div style="margin-top:10px; padding:8px; background:#1e293b; border-radius:8px; font-size:0.6rem;">
-            <b>CHARACTER VAULT</b><br>
-            <button onclick="exportData()">Export</button> <button onclick="importData()">Import</button>
-            <input id="vault-io" placeholder="Paste code..." style="width:100%; margin-top:4px; font-size:0.5rem;">
+        <div style="background:#0f172a; padding:15px; border-radius:12px; border:1px solid var(--accent); margin-bottom:15px; text-align:center;">
+            <h4 style="margin:0 0 10px 0; color:var(--accent);">🛡️ HOUSE HERALDRY</h4>
+            <button onclick="document.getElementById('crest-in').click()" style="padding:10px; background:var(--accent); color:black; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">Upload Family Crest</button>
+            <input type="file" id="crest-in" style="display:none" accept="image/*" onchange="uploadCrest(this)">
+            <p style="font-size:0.6rem; margin-top:10px; opacity:0.7;">Upload your shield here to set the corner icon.</p>
         </div>
+        <button onclick="nuclear()" style="width:100%; padding:15px; background:orange; border:none; border-radius:10px; font-weight:900; color:black;">☢️ MASS NPC ATTACK</button>
     </div>
 
-    <div id="log">Adventure begins...</div>
+    <div id="dice" class="panel"><div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;" id="dice-grid"></div></div>
+    <div id="ledg" class="panel">
+        <div style="background:#0f172a; padding:10px; border-radius:10px; border:1px solid #334155; margin-bottom:8px;">💰 Gold: <input type="number" id="gold-cur" value="0" onchange="updateGold(this)"></div>
+        <div style="background:#0f172a; padding:10px; border-radius:10px; border:1px solid #334155;">💀 Kills: <span id="tally-vis"></span> <button onclick="addKill()" style="float:right;">+1</button></div>
+    </div>
+    <div id="note" class="panel"><textarea id="notes-area" style="width:100%; height:150px; background:#0f172a; color:white; border-radius:10px; padding:10px;"></textarea></div>
+
+    <div id="log">Log started...</div>
 </div>
 
 <script>
-    /** * THE CREST SELECTOR 
-     * 1 = Classic Shield Boar (The original drawing)
-     * 2 = Gold/Green Boar (Face forward)
-     * 3 = Black/White Modern Boar (Profile view)
-     */
-    const ACTIVE_CREST = 2; 
-
-    const CREST_URLS = {
-        1: "https://pin.it/1xxqFPdvY",
-        2: "https://pin.it/2fLkNXPHK",
-        3: "https://pin.it/1MCjU6jSp"
-    };
-
     let kSess = 0; let kLife = 0; let gLife = 0;
     let timerVal = 60; let timerInterval = null;
-    const log = document.getElementById('log');
 
     function init() {
-        document.getElementById('family-crest').src = CREST_URLS[ACTIVE_CREST];
+        const dice = [4,6,8,10,12,20];
+        const dg = document.getElementById('dice-grid');
+        dice.forEach(s => { dg.innerHTML += `<div style="background:#0f172a; border:1px solid var(--primary); padding:15px; border-radius:10px; text-align:center; cursor:pointer;" onclick="vRoll(${s}, this)"><h2>-</h2><span style="font-size:0.6rem; color:var(--primary)">d${s}</span></div>`; });
+        
         const skills = JSON.parse(localStorage.getItem('hero_skills')) || [];
         const cont = document.getElementById('skill-cont');
-        cont.innerHTML = "";
         for (let i = 0; i < 4; i++) {
-            const d = skills[i] || { n: `Action ${i+1}`, c: 1, s: 20, m: 0 };
-            cont.innerHTML += `<div class="skill-card"><div class="res-win" onclick="rollSkill(${i}, this)">-</div><div style="flex-grow:1"><input class="sn" value="${d.n}" style="background:none; border:none; color:white; font-weight:bold; width:100%"><div style="font-size:0.6rem; color:#64748b"><input type="number" class="sc" value="${d.c}" style="width:25px">d<input type="number" class="ss" value="${d.s}" style="width:25px"> + <input type="number" class="sm" value="${d.m}" style="width:25px"></div></div></div>`;
+            const d = skills[i] || { n: `Action ${i+1}`, s: 20, m: 0 };
+            cont.innerHTML += `<div class="skill-card"><div class="res-win" onclick="rollSkill(${i}, this)">-</div><div style="flex-grow:1"><input class="sn" value="${d.n}" style="background:none; border:none; color:white; font-weight:bold; width:100%"><div style="font-size:0.6rem; color:#64748b">1 d <input type="number" class="ss" value="${d.s}" style="width:30px"> + <input type="number" class="sm" value="${d.m}" style="width:30px"></div></div></div>`;
         }
         loadData();
     }
 
-    function toggleTimer() {
-        if (timerInterval) {
-            clearInterval(timerInterval); timerInterval = null; timerVal = 60; updateTimerDisplay();
-            document.getElementById('timer-msg').innerText = "Start";
-        } else {
-            timerVal = 60; document.getElementById('timer-msg').innerText = "Running";
-            timerInterval = setInterval(() => {
-                timerVal--; updateTimerDisplay();
-                if (timerVal <= 0) { clearInterval(timerInterval); timerInterval = null; document.getElementById('timer-msg').innerText = "End!"; }
-            }, 1000);
+    function uploadCrest(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => { 
+                document.getElementById('family-crest').src = e.target.result; 
+                saveAll(); 
+                alert("Crest Recorded in the Annals of the House!");
+            };
+            reader.readAsDataURL(input.files[0]);
         }
     }
-
-    function updateTimerDisplay() {
-        const n = document.getElementById('timer-num'); n.innerText = timerVal;
-        n.className = (timerVal < 10) ? 'timer-low' : '';
-    }
-
-    function loadData() {
-        const st = JSON.parse(localStorage.getItem('hero_stats')) || {cur:20, max:20, gc:0, gl:0, ks:0, kl:0, name:'', notes:'', ab:{str:10,dex:10,con:10,int:10,wis:10,cha:10}, img:''};
-        document.getElementById('curHP').innerText = st.cur;
-        document.getElementById('maxHP').value = st.max;
-        document.getElementById('gold-cur').value = st.gc;
-        document.getElementById('gold-life').innerText = st.gl;
-        document.getElementById('char-name').value = st.name || "";
-        document.getElementById('notes-area').value = st.notes || "";
-        if(st.img) document.getElementById('char-img-large').src = st.img;
-        kSess = st.ks; kLife = st.kl; gLife = st.gl;
-        for(let a in st.ab) { if(document.getElementById('a-'+a)) document.getElementById('a-'+a).value = st.ab[a]; }
-        updateTally();
-    }
-
-    function showTab(id, btn) {
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active'); btn.classList.add('active');
-    }
-
-    function rollSkill(i, win) {
-        const card = document.querySelectorAll('.skill-card')[i];
-        const s = parseInt(card.querySelector('.ss').value);
-        const m = parseInt(card.querySelector('.sm').value);
-        let r = Math.floor(Math.random()*s)+1;
-        win.innerText = r + m;
-        win.style.background = (s===20 && r===20) ? 'var(--accent)' : 'var(--primary)';
-        addLog(`${card.querySelector('.sn').value}: ${r+m}`);
-    }
-
-    function vRoll(s, el) {
-        const r = Math.floor(Math.random()*s)+1;
-        el.querySelector('h2').innerText = r;
-        addLog(`d${s}: ${r}`);
-    }
-
-    function modHP(heal) {
-        let cur = parseInt(document.getElementById('curHP').innerText);
-        let adj = parseInt(document.getElementById('hp-adj').value) || 0;
-        let max = parseInt(document.getElementById('maxHP').value);
-        cur = heal ? Math.min(max, cur+adj) : Math.max(0, cur-adj);
-        document.getElementById('curHP').innerText = cur;
-        document.getElementById('hp-adj').value = '';
-        saveAll();
-    }
-
-    function addKill() { kSess++; kLife++; updateTally(); saveAll(); }
-    function updateTally() {
-        let s = ""; for(let i=1; i<=kSess; i++) s += (i%5===0) ? "卌 " : "|";
-        document.getElementById('tally-vis').innerText = s || "---";
-        document.getElementById('kills-sess').innerText = kSess;
-        document.getElementById('kills-life').innerText = kLife;
-    }
-
-    function updateGold(el) { let v = parseInt(el.value); if(v > gLife) gLife = v; document.getElementById('gold-life').innerText = gLife; saveAll(); }
-
-    function nuclear() {
-        addLog("--- MASS ATTACK ---");
-        for(let i=1; i<=10; i++) addLog(`Enemy ${i}: ${Math.floor(Math.random()*20)+1}`);
-    }
-
-    function addLog(m) { log.innerHTML = `> ${m}<br>` + log.innerHTML; }
 
     function uploadImg(input) {
         if (input.files && input.files[0]) {
@@ -269,10 +154,24 @@
         }
     }
 
+    function loadData() {
+        const st = JSON.parse(localStorage.getItem('hero_stats')) || {cur:20, max:20, gc:0, gl:0, ks:0, kl:0, name:'', notes:'', ab:{str:10,dex:10,con:10,int:10,wis:10,cha:10}, img:'', crest:''};
+        document.getElementById('curHP').innerText = st.cur;
+        document.getElementById('maxHP').value = st.max;
+        document.getElementById('gold-cur').value = st.gc;
+        document.getElementById('char-name').value = st.name || "";
+        document.getElementById('notes-area').value = st.notes || "";
+        if(st.img) document.getElementById('char-img-large').src = st.img;
+        if(st.crest) document.getElementById('family-crest').src = st.crest;
+        kSess = st.ks; kLife = st.kl; gLife = st.gl;
+        for(let a in st.ab) { if(document.getElementById('a-'+a)) document.getElementById('a-'+a).value = st.ab[a]; }
+        updateTally();
+    }
+
     function saveAll() {
         const sk = [];
         document.querySelectorAll('.skill-card').forEach(c => {
-            sk.push({ n: c.querySelector('.sn').value, c: c.querySelector('.sc').value, s: c.querySelector('.ss').value, m: c.querySelector('.sm').value });
+            sk.push({ n: c.querySelector('.sn').value, s: c.querySelector('.ss').value, m: c.querySelector('.sm').value });
         });
         const ab = { str: document.getElementById('a-str').value, dex: document.getElementById('a-dex').value, con: document.getElementById('a-con').value, int: document.getElementById('a-int').value, wis: document.getElementById('a-wis').value, cha: document.getElementById('a-cha').value };
         localStorage.setItem('hero_skills', JSON.stringify(sk));
@@ -280,23 +179,22 @@
             cur: document.getElementById('curHP').innerText, max: document.getElementById('maxHP').value,
             gc: document.getElementById('gold-cur').value, gl: gLife, ks: kSess, kl: kLife,
             name: document.getElementById('char-name').value, notes: document.getElementById('notes-area').value,
-            img: document.getElementById('char-img-large').src, ab: ab
+            img: document.getElementById('char-img-large').src, 
+            crest: document.getElementById('family-crest').src,
+            ab: ab
         }));
     }
 
-    function exportData() {
-        saveAll();
-        const d = { s: localStorage.getItem('hero_skills'), v: localStorage.getItem('hero_stats') };
-        document.getElementById('vault-io').value = btoa(JSON.stringify(d));
-    }
-
-    function importData() {
-        try {
-            const d = JSON.parse(atob(document.getElementById('vault-io').value));
-            localStorage.setItem('hero_skills', d.s); localStorage.setItem('hero_stats', d.v);
-            location.reload();
-        } catch(e) { alert("Error!"); }
-    }
+    /* Standard functions kept for utility */
+    function showTab(id, btn) { document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); btn.classList.add('active'); }
+    function vRoll(s, el) { const r = Math.floor(Math.random()*s)+1; el.querySelector('h2').innerText = r; }
+    function rollSkill(i, win) { const card = document.querySelectorAll('.skill-card')[i]; const s = card.querySelector('.ss').value; const r = Math.floor(Math.random()*s)+1; win.innerText = r + parseInt(card.querySelector('.sm').value); }
+    function modHP(heal) { let cur = parseInt(document.getElementById('curHP').innerText); let adj = parseInt(document.getElementById('hp-adj').value) || 0; let max = parseInt(document.getElementById('maxHP').value); cur = heal ? Math.min(max, cur+adj) : Math.max(0, cur-adj); document.getElementById('curHP').innerText = cur; saveAll(); }
+    function addKill() { kSess++; updateTally(); saveAll(); }
+    function updateTally() { let s = ""; for(let i=1; i<=kSess; i++) s += (i%5===0) ? "卌 " : "|"; document.getElementById('tally-vis').innerText = s || "---"; }
+    function toggleTimer() { if (timerInterval) { clearInterval(timerInterval); timerInterval = null; timerVal = 60; document.getElementById('timer-msg').innerText = "Start"; } else { timerInterval = setInterval(() => { timerVal--; document.getElementById('timer-num').innerText = timerVal; if(timerVal<=0) clearInterval(timerInterval); }, 1000); document.getElementById('timer-msg').innerText = "Running"; } }
+    function addLog(m) { log.innerHTML = `> ${m}<br>` + log.innerHTML; }
+    function nuclear() { for(let i=1; i<=10; i++) addLog(`Enemy ${i}: ${Math.floor(Math.random()*20)+1}`); }
 
     init();
 </script>
