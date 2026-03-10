@@ -3,55 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Legend: Battle Timer Edition</title>
+    <title>RPG Legend: Boar Crest Edition</title>
     
-    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/150/fbbf24/shield.png">
-    <link rel="icon" href="https://img.icons8.com/ios-filled/150/fbbf24/shield.png">
+    <link rel="apple-touch-icon" href="https://i.ibb.co/v4m0sB5/boar-gold.png">
+    <link rel="icon" href="https://i.ibb.co/v4m0sB5/boar-gold.png">
 
     <style>
         :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #fbbf24; --hp: #10b981; --dm: #f43f5e; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; overflow-x: hidden; }
         .container { width: 100%; max-width: 500px; margin: auto; background: var(--card); padding: 15px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; min-height: 90vh; }
 
-        .crest-slot { position: absolute; top: 15px; right: 15px; width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--accent); background: #0f172a; z-index: 5; overflow: hidden; }
-        .crest-slot img { width: 100%; height: 100%; object-fit: cover; }
+        /* CREST SLOT */
+        .crest-slot { position: absolute; top: 15px; right: 15px; width: 50px; height: 50px; border-radius: 10px; border: 2px solid var(--accent); background: white; z-index: 5; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .crest-slot img { width: 100%; height: 100%; object-fit: contain; }
         
-        .tabs-container { overflow-x: auto; white-space: nowrap; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
-        .tab-btn { display: inline-block; padding: 10px 20px; cursor: pointer; border: none; background: transparent; color: #64748b; font-weight: bold; font-size: 0.75rem; transition: 0.3s; }
+        /* SCROLLABLE TABS */
+        .tabs-container { overflow-x: auto; white-space: nowrap; margin-bottom: 12px; border-bottom: 1px solid #334155; -webkit-overflow-scrolling: touch; }
+        .tab-btn { display: inline-block; padding: 8px 15px; cursor: pointer; border: none; background: transparent; color: #64748b; font-weight: bold; font-size: 0.7rem; }
         .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
 
-        .panel { display: none; animation: fadeIn 0.3s; }
+        .panel { display: none; animation: fadeIn 0.2s; }
         .panel.active { display: block; }
         @keyframes fadeIn { from {opacity: 0} to {opacity: 1} }
 
-        /* BATTLE TIMER */
-        .timer-wrap { background: #0f172a; border-radius: 15px; padding: 10px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-around; border: 1px solid #334155; cursor: pointer; }
-        .timer-circle { width: 50px; height: 50px; border-radius: 50%; border: 4px solid #334155; display: flex; align-items: center; justify-content: center; position: relative; }
-        #timer-num { font-weight: 900; font-size: 1.2rem; }
-        .timer-low { color: var(--dm); animation: shake 0.5s infinite; }
-        @keyframes shake { 0% {transform: rotate(0)} 25% {transform: rotate(5deg)} 75% {transform: rotate(-5deg)} 100% {transform: rotate(0)} }
-
-        .hero-landing { text-align: center; padding: 20px 0; }
-        #char-img-large { width: 220px; height: 220px; border-radius: 20px; object-fit: cover; border: 4px solid var(--primary); box-shadow: 0 0 20px rgba(99,102,241,0.3); cursor: pointer; }
+        /* COMPACT ACTION ROW (Timer + HP) */
+        .action-row { display: grid; grid-template-columns: 80px 1fr 100px; gap: 8px; margin-bottom: 12px; align-items: center; background: #0f172a; padding: 8px; border-radius: 12px; border: 1px solid #334155; }
         
-        .ability-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
-        .ability-box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 10px; text-align: center; }
-        .ability-box label { font-size: 0.6rem; color: var(--primary); font-weight: bold; display: block; margin-bottom: 5px; }
-        .ability-box input { background: none; border: none; color: white; width: 100%; text-align: center; font-size: 1.2rem; font-weight: bold; }
+        .mini-timer { text-align: center; border-right: 1px solid #334155; cursor: pointer; }
+        #timer-num { font-size: 1.2rem; font-weight: 900; display: block; line-height: 1; }
+        .timer-label { font-size: 0.5rem; text-transform: uppercase; color: #64748b; }
+        .timer-low { color: var(--dm); animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0% {scale: 1;} 50% {scale: 1.1;} 100% {scale: 1;} }
 
-        .skill-card { background: #0f172a; padding: 12px; margin-bottom: 8px; border-radius: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid #334155; }
-        .res-win { width: 60px; height: 60px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 1.8rem; font-weight: 900; }
+        .hp-input-wrap { display: flex; gap: 4px; }
+        .hp-input-wrap input { width: 100%; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 6px; text-align: center; font-size: 0.9rem; }
+        .hp-btn { border: none; color: white; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; cursor: pointer; }
+
+        /* HERO LANDING */
+        .hero-landing { text-align: center; padding: 10px 0; }
+        #char-img-large { width: 180px; height: 180px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary); cursor: pointer; }
         
-        .dice-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .die-btn { background: #0f172a; border: 1px solid var(--primary); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; }
+        .ability-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
+        .ability-box { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 8px; text-align: center; }
+        .ability-box label { font-size: 0.5rem; color: var(--primary); font-weight: bold; display: block; }
+        .ability-box input { background: none; border: none; color: white; width: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; }
 
-        #log { margin-top: 15px; padding: 10px; background: #000; color: #94a3b8; font-family: monospace; height: 80px; overflow-y: auto; border-radius: 8px; font-size: 0.7rem; }
+        .skill-card { background: #0f172a; padding: 10px; margin-bottom: 6px; border-radius: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid #334155; }
+        .res-win { width: 45px; height: 45px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 1.4rem; font-weight: 900; }
+        
+        .dice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .die-btn { background: #0f172a; border: 1px solid var(--primary); border-radius: 10px; padding: 15px 5px; text-align: center; cursor: pointer; }
+        .die-btn h2 { margin: 0; font-size: 1.2rem; }
+        .die-btn span { font-size: 0.6rem; color: var(--primary); }
+
+        #log { margin-top: 10px; padding: 8px; background: #000; color: #64748b; font-family: monospace; height: 60px; overflow-y: auto; border-radius: 8px; font-size: 0.6rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="crest-slot"><img src="https://img.icons8.com/ios-filled/50/fbbf24/shield.png"></div>
+    <div class="crest-slot">
+        <img id="family-crest" src="" alt="Crest">
+    </div>
 
     <div class="tabs-container">
         <button class="tab-btn active" onclick="showTab('hero', this)">👤 HERO</button>
@@ -64,12 +77,12 @@
 
     <div id="hero" class="panel active">
         <div class="hero-landing">
-            <img id="char-img-large" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231e293b'/%3E%3Cpath d='M50 30c-11 0-20 9-20 20s9 20 20 20 20-9 20-20-9-20-20-20z' fill='%23334155'/%3E%3C/svg%3E" onclick="document.getElementById('file-in').click()">
+            <img id="char-img-large" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23334155'/%3E%3C/svg%3E" onclick="document.getElementById('file-in').click()">
             <input type="file" id="file-in" style="display:none" accept="image/*" onchange="uploadImg(this)">
-            <h2><input id="char-name" placeholder="Hero Name" style="background:none; border:none; text-align:center; color:white; width:100%;"></h2>
-            <div style="font-size:1.2rem;">❤️ <span id="curHP">20</span> / <input type="number" id="maxHP" value="20" style="background:none; border:none; color:white; width:60px; font-size:1.2rem;"></div>
+            <h3 style="margin: 10px 0 5px 0;"><input id="char-name" placeholder="Hero Name" style="background:none; border:none; text-align:center; color:white; width:80%; border-bottom:1px solid #334155;"></h3>
+            <div style="font-size:1.1rem;">❤️ <span id="curHP">20</span> / <input type="number" id="maxHP" value="20" style="background:none; border:none; color:white; width:40px; text-align:left;"></div>
         </div>
-        <div class="ability-row">
+        <div class="ability-grid">
             <div class="ability-box"><label>STR</label><input type="number" id="a-str" value="10"></div>
             <div class="ability-box"><label>DEX</label><input type="number" id="a-dex" value="10"></div>
             <div class="ability-box"><label>CON</label><input type="number" id="a-con" value="10"></div>
@@ -80,17 +93,21 @@
     </div>
 
     <div id="comb" class="panel">
-        <div class="timer-wrap" onclick="toggleTimer()">
-            <div class="timer-circle"><span id="timer-num">60</span></div>
-            <div style="font-size:0.8rem;"><b>BATTLE TIMER</b><br><span id="timer-msg">Tap to start turn</span></div>
-        </div>
-        <div style="display:flex; gap:10px; background:#0f172a; padding:15px; border-radius:12px; margin-bottom:15px;">
-            <input type="number" id="hp-adj" placeholder="+/-" style="flex:1; height:40px; font-size:1.2rem; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px; text-align:center;">
-            <button onclick="modHP(true)" style="background:var(--hp); border:none; color:white; padding:0 20px; border-radius:8px; font-weight:bold;">HEAL</button>
-            <button onclick="modHP(false)" style="background:var(--dm); border:none; color:white; padding:0 20px; border-radius:8px; font-weight:bold;">HIT</button>
+        <div class="action-row">
+            <div class="mini-timer" onclick="toggleTimer()">
+                <span id="timer-num">60</span>
+                <span class="timer-label" id="timer-msg">Start</span>
+            </div>
+            <div class="hp-input-wrap">
+                <input type="number" id="hp-adj" placeholder="+/-">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <button onclick="modHP(true)" class="hp-btn" style="background:var(--hp)">HEAL</button>
+                <button onclick="modHP(false)" class="hp-btn" style="background:var(--dm)">HIT</button>
+            </div>
         </div>
         <div id="skill-cont"></div>
-        <button onclick="saveAll()" style="width:100%; padding:15px; background:var(--primary); border:none; color:white; border-radius:12px; font-weight:bold; margin-top:10px;">💾 SAVE PROGRESS</button>
+        <button onclick="saveAll()" style="width:100%; padding:10px; background:var(--primary); border:none; color:white; border-radius:8px; font-weight:bold; margin-top:8px; font-size:0.8rem;">💾 SAVE</button>
     </div>
 
     <div id="dice" class="panel">
@@ -105,77 +122,79 @@
     </div>
 
     <div id="ledg" class="panel">
-        <div style="background:#0f172a; padding:15px; border-radius:12px; border:1px solid #334155; margin-bottom:10px;">
-            <h3 style="color:var(--accent); margin-top:0;">💰 Gold</h3>
-            Current: <input type="number" id="gold-cur" value="0" style="width:80px;" onchange="updateGold(this)">
-            <p style="opacity:0.6; font-size:0.8rem;">Lifetime Wealth: <span id="gold-life">0</span></p>
+        <div style="background:#0f172a; padding:10px; border-radius:10px; border:1px solid #334155; margin-bottom:8px;">
+            <h4 style="color:var(--accent); margin:0 0 5px 0;">💰 Gold</h4>
+            <input type="number" id="gold-cur" value="0" style="width:60px;" onchange="updateGold(this)">
+            <span style="opacity:0.6; font-size:0.7rem; margin-left:10px;">Lifetime: <span id="gold-life">0</span></span>
         </div>
-        <div style="background:#0f172a; padding:15px; border-radius:12px; border:1px solid #334155;">
-            <h3 style="color:var(--dm); margin-top:0;">💀 Kills</h3>
-            <div id="tally-vis" style="font-size:1.5rem; color:var(--accent); min-height:30px;"></div>
-            <button onclick="addKill()" style="width:100%; padding:10px; margin-top:10px; background:none; border:1px solid var(--dm); color:var(--dm); border-radius:8px;">+1 Kill</button>
+        <div style="background:#0f172a; padding:10px; border-radius:10px; border:1px solid #334155;">
+            <h4 style="color:var(--dm); margin:0 0 5px 0;">💀 Kills</h4>
+            <div id="tally-vis" style="font-size:1.2rem; color:var(--accent); min-height:20px;"></div>
+            <button onclick="addKill()" style="width:100%; padding:8px; margin-top:8px; background:none; border:1px solid var(--dm); color:var(--dm); border-radius:6px; font-size:0.7rem;">+1 Kill</button>
         </div>
     </div>
 
     <div id="dm" class="panel">
-        <button onclick="nuclear()" style="width:100%; padding:20px; background:orange; border:none; border-radius:15px; font-weight:900; color:black; font-size:1.2rem;">☢️ NPC ATTACK ALL</button>
+        <button onclick="nuclear()" style="width:100%; padding:15px; background:orange; border:none; border-radius:10px; font-weight:900; color:black;">☢️ MASS ATTACK (10 NPCs)</button>
     </div>
 
     <div id="note" class="panel">
-        <textarea id="notes-area" style="width:100%; height:200px; background:#0f172a; color:white; border:1px solid #334155; border-radius:12px; padding:10px;"></textarea>
-        <div style="margin-top:15px; padding:10px; background:#1e293b; border-radius:10px; font-size:0.7rem;">
+        <textarea id="notes-area" style="width:100%; height:150px; background:#0f172a; color:white; border:1px solid #334155; border-radius:10px; padding:10px; font-size:0.8rem;"></textarea>
+        <div style="margin-top:10px; padding:8px; background:#1e293b; border-radius:8px; font-size:0.6rem;">
             <b>CHARACTER VAULT</b><br>
-            <button onclick="exportData()" style="padding:5px; margin-top:5px;">Export</button>
-            <button onclick="importData()" style="padding:5px; margin-top:5px;">Import</button>
-            <input id="vault-io" placeholder="Paste code..." style="width:100%; margin-top:5px;">
+            <button onclick="exportData()">Export</button> <button onclick="importData()">Import</button>
+            <input id="vault-io" placeholder="Paste code..." style="width:100%; margin-top:4px; font-size:0.5rem;">
         </div>
     </div>
 
-    <div id="log">Log started...</div>
+    <div id="log">Adventure begins...</div>
 </div>
 
 <script>
+    /** * THE CREST SELECTOR 
+     * 1 = Classic Shield Boar (The original drawing)
+     * 2 = Gold/Green Boar (Face forward)
+     * 3 = Black/White Modern Boar (Profile view)
+     */
+    const ACTIVE_CREST = 2; 
+
+    const CREST_URLS = {
+        1: "https://i.ibb.co/L8P4Zzq/crest-classic.jpg",
+        2: "https://i.ibb.co/v4m0sB5/boar-gold.png",
+        3: "https://i.ibb.co/GPrrY24/boar-modern.png"
+    };
+
     let kSess = 0; let kLife = 0; let gLife = 0;
     let timerVal = 60; let timerInterval = null;
     const log = document.getElementById('log');
 
     function init() {
+        document.getElementById('family-crest').src = CREST_URLS[ACTIVE_CREST];
         const skills = JSON.parse(localStorage.getItem('hero_skills')) || [];
         const cont = document.getElementById('skill-cont');
         cont.innerHTML = "";
         for (let i = 0; i < 4; i++) {
-            const d = skills[i] || { n: `Attack ${i+1}`, c: 1, s: 20, m: 0 };
-            cont.innerHTML += `<div class="skill-card"><div class="res-win" onclick="rollSkill(${i}, this)">-</div><div style="flex-grow:1"><input class="sn" value="${d.n}" style="background:none; border:none; color:white; font-weight:bold; width:100%"><div style="font-size:0.65rem; color:#64748b"><input type="number" class="sc" value="${d.c}"> d <input type="number" class="ss" value="${d.s}"> + <input type="number" class="sm" value="${d.m}"></div></div></div>`;
+            const d = skills[i] || { n: `Action ${i+1}`, c: 1, s: 20, m: 0 };
+            cont.innerHTML += `<div class="skill-card"><div class="res-win" onclick="rollSkill(${i}, this)">-</div><div style="flex-grow:1"><input class="sn" value="${d.n}" style="background:none; border:none; color:white; font-weight:bold; width:100%"><div style="font-size:0.6rem; color:#64748b"><input type="number" class="sc" value="${d.c}" style="width:25px">d<input type="number" class="ss" value="${d.s}" style="width:25px"> + <input type="number" class="sm" value="${d.m}" style="width:25px"></div></div></div>`;
         }
         loadData();
     }
 
-    /* TIMER LOGIC */
     function toggleTimer() {
         if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            timerVal = 60;
-            updateTimerDisplay();
-            document.getElementById('timer-msg').innerText = "Turn Ended. Tap to restart.";
+            clearInterval(timerInterval); timerInterval = null; timerVal = 60; updateTimerDisplay();
+            document.getElementById('timer-msg').innerText = "Start";
         } else {
-            timerVal = 60;
-            document.getElementById('timer-msg').innerText = "Turn in progress...";
+            timerVal = 60; document.getElementById('timer-msg').innerText = "Running";
             timerInterval = setInterval(() => {
-                timerVal--;
-                updateTimerDisplay();
-                if (timerVal <= 0) {
-                    clearInterval(timerInterval);
-                    timerInterval = null;
-                    document.getElementById('timer-msg').innerText = "TIME EXPIRED!";
-                }
+                timerVal--; updateTimerDisplay();
+                if (timerVal <= 0) { clearInterval(timerInterval); timerInterval = null; document.getElementById('timer-msg').innerText = "End!"; }
             }, 1000);
         }
     }
 
     function updateTimerDisplay() {
-        const n = document.getElementById('timer-num');
-        n.innerText = timerVal;
+        const n = document.getElementById('timer-num'); n.innerText = timerVal;
         n.className = (timerVal < 10) ? 'timer-low' : '';
     }
 
@@ -185,7 +204,7 @@
         document.getElementById('maxHP').value = st.max;
         document.getElementById('gold-cur').value = st.gc;
         document.getElementById('gold-life').innerText = st.gl;
-        document.getElementById('char-name').value = st.name || "Unnamed Hero";
+        document.getElementById('char-name').value = st.name || "";
         document.getElementById('notes-area').value = st.notes || "";
         if(st.img) document.getElementById('char-img-large').src = st.img;
         kSess = st.ks; kLife = st.kl; gLife = st.gl;
@@ -196,25 +215,23 @@
     function showTab(id, btn) {
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        btn.classList.add('active');
+        document.getElementById(id).classList.add('active'); btn.classList.add('active');
     }
 
     function rollSkill(i, win) {
         const card = document.querySelectorAll('.skill-card')[i];
-        const c = parseInt(card.querySelector('.sc').value);
         const s = parseInt(card.querySelector('.ss').value);
         const m = parseInt(card.querySelector('.sm').value);
         let r = Math.floor(Math.random()*s)+1;
         win.innerText = r + m;
         win.style.background = (s===20 && r===20) ? 'var(--accent)' : 'var(--primary)';
-        addLog(`${card.querySelector('.sn').value}: Rolled ${r} + ${m}`);
+        addLog(`${card.querySelector('.sn').value}: ${r+m}`);
     }
 
     function vRoll(s, el) {
         const r = Math.floor(Math.random()*s)+1;
         el.querySelector('h2').innerText = r;
-        addLog(`Quick d${s}: ${r}`);
+        addLog(`d${s}: ${r}`);
     }
 
     function modHP(heal) {
@@ -238,8 +255,8 @@
     function updateGold(el) { let v = parseInt(el.value); if(v > gLife) gLife = v; document.getElementById('gold-life').innerText = gLife; saveAll(); }
 
     function nuclear() {
-        addLog("--- NUCLEAR ATTACK ---");
-        for(let i=1; i<=10; i++) addLog(`Enemy ${i} rolls: ${Math.floor(Math.random()*20)+1}`);
+        addLog("--- MASS ATTACK ---");
+        for(let i=1; i<=10; i++) addLog(`Enemy ${i}: ${Math.floor(Math.random()*20)+1}`);
     }
 
     function addLog(m) { log.innerHTML = `> ${m}<br>` + log.innerHTML; }
@@ -265,7 +282,6 @@
             name: document.getElementById('char-name').value, notes: document.getElementById('notes-area').value,
             img: document.getElementById('char-img-large').src, ab: ab
         }));
-        addLog("Progress Saved.");
     }
 
     function exportData() {
