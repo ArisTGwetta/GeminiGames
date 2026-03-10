@@ -3,197 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Hero & DM Tool</title>
+    <title>RPG Legend: Camping Edition</title>
+    
+    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/150/fbbf24/shield.png">
+    <link rel="icon" href="https://img.icons8.com/ios-filled/150/fbbf24/shield.png">
+
     <style>
-        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --crit: #fbbf24; --fail: #ef4444; --hp: #10b981; --dm: #f43f5e; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 10px; margin: 0; }
-        .container { width: 100%; max-width: 600px; background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #fbbf24; --hp: #10b981; --dm: #f43f5e; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; }
+        .container { width: 100%; max-width: 500px; margin: auto; background: var(--card); padding: 15px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; }
+
+        /* CREST & HEADER */
+        .crest-slot { position: absolute; top: 15px; right: 15px; width: 45px; height: 45px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); background: #0f172a; z-index: 5; }
+        .crest-slot img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* Layout Parts */
-        .status-bar { background: #0f172a; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #334155; }
-        .tabs { display: flex; gap: 5px; margin-bottom: 10px; overflow-x: auto; }
-        .tab-btn { flex: 1; padding: 10px; cursor: pointer; border: none; background: #334155; color: white; border-radius: 6px; font-weight: bold; white-space: nowrap; font-size: 0.8rem; }
-        .tab-btn.active { background: var(--primary); opacity: 1; }
-        .tab-btn.dm-tab.active { background: var(--dm); }
+        .profile-section { display: flex; gap: 15px; background: #0f172a; padding: 15px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #334155; position: relative; }
+        #char-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); cursor: pointer; }
+
+        /* ABILITY SCORES */
+        .ability-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 15px; }
+        .ability-box { background: #1e293b; border: 1px solid #334155; border-radius: 8px; text-align: center; padding: 5px 0; }
+        .ability-box label { font-size: 0.55rem; color: var(--primary); font-weight: bold; display: block; }
+        .ability-box input { background: none; border: none; color: white; width: 100%; text-align: center; font-size: 1rem; font-weight: bold; }
+
+        /* TABS */
+        .tabs { display: flex; gap: 4px; margin-bottom: 10px; overflow-x: auto; }
+        .tab-btn { flex: 1; padding: 10px; cursor: pointer; border: none; background: #334155; color: white; border-radius: 6px; font-weight: bold; font-size: 0.65rem; white-space: nowrap; }
+        .tab-btn.active { background: var(--primary); }
 
         .panel { display: none; }
         .panel.active { display: block; }
 
-        /* Skill & Monster Cards */
-        .card { background: #334155; padding: 10px; margin-bottom: 8px; border-radius: 8px; border-left: 4px solid var(--primary); }
-        .dm-card { border-left-color: var(--dm); }
-        input { background: #0f172a; border: 1px solid #475569; color: white; padding: 4px; border-radius: 4px; font-size: 0.9rem; }
+        /* CARDS */
+        .skill-card { background: #0f172a; padding: 10px; margin-bottom: 8px; border-radius: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid #334155; }
+        .res-win { width: 55px; height: 55px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 1.5rem; font-weight: 900; }
         
-        /* DM Screen Specific */
-        .dm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .monster-slot { background: #1e293b; padding: 10px; border-radius: 6px; border: 1px solid #475569; position: relative; }
-        .hp-bar-mini { height: 4px; background: #444; margin: 5px 0; border-radius: 2px; overflow: hidden; }
-        .hp-fill { height: 100%; background: var(--hp); transition: 0.3s; }
-        .atk-btn { width: 100%; margin-top: 5px; background: #475569; border: none; color: white; padding: 5px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        /* LEDGER */
+        .ledger-item { background: #0f172a; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #334155; }
+        .ledger-stats { display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 5px; }
+        .tally-marks { color: var(--accent); font-family: monospace; letter-spacing: 1px; word-break: break-all; }
 
-        #log { margin-top: 15px; padding: 10px; background: #000; color: #94a3b8; font-family: monospace; height: 120px; overflow-y: auto; border-radius: 6px; font-size: 0.8rem; border: 1px solid #334155; }
-        .log-entry { border-bottom: 1px dotted #222; padding: 2px 0; }
-        
-        /* Animations */
-        @keyframes shake { 0%, 100% {transform:translateX(0)} 25% {transform:translateX(-4px)} 75% {transform:translateX(4px)} }
-        .shake { animation: shake 0.2s ease-in-out 2; }
+        #notes-area { width: 100%; height: 120px; background: #0f172a; color: #cbd5e1; border: 1px solid #334155; border-radius: 10px; padding: 10px; box-sizing: border-box; margin-bottom: 10px; }
+        .vault-box { background: #0f172a; padding: 10px; border-radius: 8px; font-size: 0.7rem; border: 1px dashed #475569; }
+        input[type="number"] { width: 40px; background: #1e293b; border: 1px solid #334155; color: white; text-align: center; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-<div class="container" id="app">
-    <div class="status-bar" id="player-status">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <b>HP: <span id="curHP" style="color:var(--hp)">20</span> / <input type="number" id="maxHP" value="20" style="width:40px; background:none; border:none; color:inherit;"></b>
-            <input type="number" id="hpVal" placeholder="+/-" style="width:50px">
-            <div>
-                <button onclick="adjHP(true)" style="background:var(--hp); border:none; color:white; padding:5px 10px; border-radius:4px;">Heal</button>
-                <button onclick="adjHP(false)" style="background:var(--fail); border:none; color:white; padding:5px 10px; border-radius:4px;">Dmg</button>
-            </div>
+<div class="container">
+    <div class="crest-slot">
+        <img src="https://img.icons8.com/ios-filled/50/fbbf24/shield.png" onerror="this.src='https://via.placeholder.com/50?text=Crest'">
+    </div>
+
+    <div class="profile-section">
+        <img id="char-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231e293b'/%3E%3Cpath d='M50 30c-11 0-20 9-20 20s9 20 20 20 20-9 20-20-9-20-20-20z' fill='%23334155'/%3E%3C/svg%3E" onclick="document.getElementById('file-in').click()">
+        <input type="file" id="file-in" style="display:none" accept="image/*" onchange="uploadImg(this)">
+        <div style="flex-grow:1; padding-top:10px;">
+            <input id="char-name" placeholder="Hero Name" style="background:none; border:none; border-bottom:1px solid #334155; color:white; font-size:1.2rem; font-weight:bold; width:80%;">
+            <div style="margin-top:8px; font-size:0.8rem;">❤️ HP <span id="curHP">20</span>/<input type="number" id="maxHP" value="20" style="width:30px; background:none; border:none; color:white;"></div>
         </div>
+    </div>
+
+    <div class="ability-row">
+        <div class="ability-box"><label>STR</label><input type="number" id="a-str" value="10"></div>
+        <div class="ability-box"><label>DEX</label><input type="number" id="a-dex" value="10"></div>
+        <div class="ability-box"><label>CON</label><input type="number" id="a-con" value="10"></div>
+        <div class="ability-box"><label>INT</label><input type="number" id="a-int" value="10"></div>
+        <div class="ability-box"><label>WIS</label><input type="number" id="a-wis" value="10"></div>
+        <div class="ability-box"><label>CHA</label><input type="number" id="a-cha" value="10"></div>
     </div>
 
     <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('skills', this)">⚔️ Skills</button>
-        <button class="tab-btn" onclick="showTab('quick', this)">🎲 Dice</button>
-        <button class="tab-btn dm-tab" onclick="showTab('dm', this)">👺 DM Screen</button>
+        <button class="tab-btn active" onclick="showTab('comb', this)">COMBAT</button>
+        <button class="tab-btn" onclick="showTab('ledg', this)">LEDGER</button>
+        <button class="tab-btn" onclick="showTab('note', this)">NOTES/VAULT</button>
     </div>
 
-    <div id="skills" class="panel active">
-        <div id="skills-cont"></div>
-        <button onclick="saveAll()" style="width:100%; padding:10px; background:var(--hp); border:none; color:white; border-radius:6px; margin-top:10px;">💾 Save Data</button>
+    <div id="comb" class="panel active">
+        <div style="display:flex; gap:5px; margin-bottom:10px;">
+            <input type="number" id="hp-adj" placeholder="+/-" style="flex:1; background:#0f172a; color:white; border:1px solid #334155; border-radius:5px; text-align:center;">
+            <button onclick="modHP(true)" style="background:var(--hp); border:none; color:white; padding:5px 12px; border-radius:5px;">Heal</button>
+            <button onclick="modHP(false)" style="background:var(--dm); border:none; color:white; padding:5px 12px; border-radius:5px;">Hit</button>
+        </div>
+        <div id="skill-cont"></div>
+        <button onclick="saveAll()" style="width:100%; padding:10px; background:var(--primary); border:none; color:white; border-radius:8px; margin-top:5px; font-weight:bold;">💾 AUTO-SAVE</button>
     </div>
 
-    <div id="quick" class="panel">
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">
-            <button class="tab-btn" onclick="rollRaw(4)">d4</button>
-            <button class="tab-btn" onclick="rollRaw(6)">d6</button>
-            <button class="tab-btn" onclick="rollRaw(8)">d8</button>
-            <button class="tab-btn" onclick="rollRaw(10)">d10</button>
-            <button class="tab-btn" onclick="rollRaw(12)">d12</button>
-            <button class="tab-btn" onclick="rollRaw(20)">d20</button>
+    <div id="ledg" class="panel">
+        <div class="ledger-item">
+            <h4 style="margin:0; color:var(--accent);">💰 Wealth</h4>
+            <div class="ledger-stats">
+                <span>Pouch: <input type="number" id="gold-cur" value="0" onchange="updateGold(this)"></span>
+                <span style="opacity:0.6;">Lifetime: <span id="gold-life">0</span></span>
+            </div>
+        </div>
+        <div class="ledger-item">
+            <h4 style="margin:0; color:var(--dm);">💀 War Tally</h4>
+            <div class="ledger-stats"><span>Sess: <span id="kills-sess">0</span></span><span style="opacity:0.6;">Total: <span id="kills-life">0</span></span></div>
+            <div id="tally-vis" class="tally-marks" style="margin-top:10px; font-size:1.2rem;"></div>
+            <button onclick="addKill()" style="width:100%; margin-top:10px; background:none; border:1px solid var(--dm); color:var(--dm); padding:5px; border-radius:5px;">+ Add Kill</button>
         </div>
     </div>
 
-    <div id="dm" class="panel">
-        <div style="background:#0f172a; padding:10px; border-radius:8px; margin-bottom:10px;">
-            <small>Spawn Monster:</small><br>
-            <input id="mName" placeholder="Name" style="width:80px">
-            <input id="mHP" type="number" placeholder="HP" style="width:40px">
-            <input id="mAtk" placeholder="1d20+2" style="width:60px">
-            <button onclick="spawnMonster()" style="background:var(--dm); color:white; border:none; padding:5px; border-radius:4px;">Add to Screen</button>
+    <div id="note" class="panel">
+        <textarea id="notes-area" placeholder="Write your legend here..."></textarea>
+        <div class="vault-box">
+            <b>CHARACTER VAULT (Backup/Transfer)</b><br>
+            <button onclick="exportData()" style="background:#334155; color:white; border:none; padding:4px 8px; border-radius:4px; margin-top:5px;">Export Code</button>
+            <button onclick="importData()" style="background:#334155; color:white; border:none; padding:4px 8px; border-radius:4px; margin-top:5px;">Import Code</button>
+            <input id="vault-io" placeholder="Paste export code here to load..." style="width:100%; background:#1e293b; border:1px solid #444; color:white; margin-top:5px; font-size:0.6rem;">
         </div>
-        <div class="dm-grid" id="dm-grid"></div>
-        <button onclick="document.getElementById('dm-grid').innerHTML=''" style="width:100%; margin-top:10px; background:#475569; border:none; color:white; border-radius:4px; padding:5px;">Clear Battlefield</button>
     </div>
-
-    <div id="log"></div>
 </div>
 
 <script>
-    const log = document.getElementById('log');
+    let kSess = 0; let kLife = 0; let gLife = 0;
 
     function init() {
-        const saved = JSON.parse(localStorage.getItem('rpg_skills')) || [];
-        const cont = document.getElementById('skills-cont');
-        for (let i = 0; i < 6; i++) {
-            const d = saved[i] || { name: `Skill ${i+1}`, c: 1, s: 20, m: 0 };
-            cont.innerHTML += `<div class="card" id="s-${i}">
-                <input class="name-input" value="${d.name}" style="width:100%; border:none; background:none; color:white; font-weight:bold; margin-bottom:5px;">
-                <input type="number" class="c" value="${d.c}" style="width:30px"> d <input type="number" class="s" value="${d.s}" style="width:30px"> 
-                + <input type="number" class="m" value="${d.m}" style="width:30px">
-                <button onclick="rollSkill(${i})" style="float:right; background:var(--primary); color:white; border:none; border-radius:4px; padding:4px 10px;">Roll</button>
-            </div>`;
+        const skills = JSON.parse(localStorage.getItem('f_skills')) || [];
+        const cont = document.getElementById('skill-cont');
+        for (let i = 0; i < 4; i++) {
+            const d = skills[i] || { n: `Skill ${i+1}`, c: 1, s: 20, m: 0 };
+            cont.innerHTML += `<div class="skill-card"><div class="res-win" onclick="rollSkill(${i}, this)">-</div><div style="flex-grow:1"><input class="sn" value="${d.n}" style="background:none; border:none; color:white; font-weight:bold; width:100%"><div style="font-size:0.6rem; color:#64748b"><input type="number" class="sc" value="${d.c}">d<input type="number" class="ss" value="${d.s}"> + <input type="number" class="sm" value="${d.m}"></div></div></div>`;
         }
-        const stats = JSON.parse(localStorage.getItem('rpg_stats')) || {cur:20, max:20};
-        document.getElementById('curHP').innerText = stats.cur;
-        document.getElementById('maxHP').value = stats.max;
+        loadFromStorage();
     }
 
-    function adjHP(isHeal) {
+    function loadFromStorage() {
+        const st = JSON.parse(localStorage.getItem('f_stats')) || {cur:20, max:20, gc:0, gl:0, ks:0, kl:0, name:'', notes:'', ab:{str:10,dex:10,con:10,int:10,wis:10,cha:10}, img:''};
+        document.getElementById('curHP').innerText = st.cur;
+        document.getElementById('maxHP').value = st.max;
+        document.getElementById('gold-cur').value = st.gc;
+        document.getElementById('gold-life').innerText = st.gl;
+        document.getElementById('char-name').value = st.name;
+        document.getElementById('notes-area').value = st.notes;
+        if(st.img) document.getElementById('char-img').src = st.img;
+        kSess = st.ks; kLife = st.kl; gLife = st.gl;
+        for(let a in st.ab) { if(document.getElementById('a-'+a)) document.getElementById('a-'+a).value = st.ab[a]; }
+        updateTally();
+    }
+
+    function modHP(heal) {
         let cur = parseInt(document.getElementById('curHP').innerText);
-        let val = parseInt(document.getElementById('hpVal').value) || 0;
+        let adj = parseInt(document.getElementById('hp-adj').value) || 0;
         let max = parseInt(document.getElementById('maxHP').value);
-        cur = isHeal ? Math.min(max, cur + val) : Math.max(0, cur - val);
+        cur = heal ? Math.min(max, cur+adj) : Math.max(0, cur-adj);
         document.getElementById('curHP').innerText = cur;
-        document.getElementById('hpVal').value = '';
+        document.getElementById('hp-adj').value = '';
         saveAll();
     }
 
-    function rollSkill(idx) {
-        const card = document.getElementById(`s-${idx}`);
-        const n = card.querySelector('.name-input').value;
-        const c = parseInt(card.querySelector('.c').value);
-        const s = parseInt(card.querySelector('.s').value);
-        const m = parseInt(card.querySelector('.m').value);
-        let total = 0;
-        for(let i=0; i<c; i++) total += Math.floor(Math.random()*s)+1;
-        addLog(`<b>${n}</b>: ${total} + ${m} = <b>${total+m}</b>`);
+    function updateGold(el) {
+        let val = parseInt(el.value); if(val > gLife) gLife = val;
+        document.getElementById('gold-life').innerText = gLife;
+        saveAll();
     }
 
-    function rollRaw(s) {
-        const r = Math.floor(Math.random()*s)+1;
-        addLog(`d${s}: <b>${r}</b>`);
+    function addKill() { kSess++; kLife++; updateTally(); saveAll(); }
+    function updateTally() {
+        let s = ""; for(let i=1; i<=kSess; i++) s += (i%5===0) ? "卌 " : "|";
+        document.getElementById('tally-vis').innerText = s || "---";
+        document.getElementById('kills-sess').innerText = kSess;
+        document.getElementById('kills-life').innerText = kLife;
     }
 
-    // DM Logic
-    function spawnMonster() {
-        const grid = document.getElementById('dm-grid');
-        if(grid.children.length >= 8) return alert("Max 8 monsters!");
-        const name = document.getElementById('mName').value || "Enemy";
-        const hp = document.getElementById('mHP').value || 10;
-        const atk = document.getElementById('mAtk').value || "1d20";
-        
-        const id = Date.now();
-        grid.innerHTML += `
-            <div class="monster-slot" id="m-${id}">
-                <div style="font-size:0.7rem; font-weight:bold;">${name}</div>
-                <div class="hp-bar-mini"><div class="hp-fill" id="fill-${id}" style="width:100%"></div></div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span id="cur-${id}" style="font-size:0.8rem">${hp}</span>
-                    <input type="number" id="adj-${id}" placeholder="+/-" style="width:35px; font-size:0.7rem">
-                </div>
-                <button class="atk-btn" onclick="monsterAtk('${name}', '${atk}')">Atk: ${atk}</button>
-                <div style="display:flex; gap:2px; margin-top:4px;">
-                    <button onclick="adjM(${id}, ${hp}, true)" style="flex:1; background:var(--hp); border:none; font-size:0.6rem; color:white; border-radius:2px;">+</button>
-                    <button onclick="adjM(${id}, ${hp}, false)" style="flex:1; background:var(--fail); border:none; font-size:0.6rem; color:white; border-radius:2px;">-</button>
-                </div>
-            </div>`;
+    function rollSkill(i, win) {
+        const card = document.querySelectorAll('.skill-card')[i];
+        const c = parseInt(card.querySelector('.sc').value);
+        const s = parseInt(card.querySelector('.ss').value);
+        const m = parseInt(card.querySelector('.sm').value);
+        let r = Math.floor(Math.random()*s)+1;
+        win.innerText = r + m;
+        win.style.background = (s===20 && r===20) ? 'var(--accent)' : 'var(--primary)';
     }
 
-    function adjM(id, max, isHeal) {
-        const curEl = document.getElementById(`cur-${id}`);
-        const valEl = document.getElementById(`adj-${id}`);
-        const fill = document.getElementById(`fill-${id}`);
-        let cur = parseInt(curEl.innerText);
-        let adj = parseInt(valEl.value) || 0;
-        cur = isHeal ? Math.min(max, cur + adj) : Math.max(0, cur - adj);
-        curEl.innerText = cur;
-        fill.style.width = (cur/max * 100) + "%";
-        valEl.value = '';
-        if(cur === 0) document.getElementById(`m-${id}`).style.opacity = "0.4";
-        else document.getElementById(`m-${id}`).style.opacity = "1";
-    }
-
-    function monsterAtk(name, formula) {
-        // Simple parser for "XdY+Z"
-        try {
-            const parts = formula.toLowerCase().split('d');
-            const count = parseInt(parts[0]) || 1;
-            const sidePart = parts[1].split('+');
-            const sides = parseInt(sidePart[0]);
-            const mod = parseInt(sidePart[1]) || 0;
-            let total = 0;
-            for(let i=0; i<count; i++) total += Math.floor(Math.random()*sides)+1;
-            addLog(`<span style="color:var(--dm)">[DM] ${name} attacks: <b>${total+mod}</b></span>`);
-        } catch(e) { addLog("Invalid Attack Formula"); }
-    }
-
-    function addLog(m) {
-        const d = document.createElement('div');
-        d.className = 'log-entry';
-        d.innerHTML = `> ${m}`;
-        log.prepend(d);
+    function uploadImg(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => { document.getElementById('char-img').src = e.target.result; saveAll(); };
+            reader.readAsDataURL(input.files[0]);
+        }
     }
 
     function showTab(id, btn) {
@@ -203,23 +192,36 @@
         btn.classList.add('active');
     }
 
+    function exportData() {
+        saveAll();
+        const data = { s: localStorage.getItem('f_skills'), v: localStorage.getItem('f_stats') };
+        document.getElementById('vault-io').value = btoa(JSON.stringify(data));
+        alert("Character Code Generated in box below!");
+    }
+
+    function importData() {
+        try {
+            const code = document.getElementById('vault-io').value;
+            const data = JSON.parse(atob(code));
+            localStorage.setItem('f_skills', data.s);
+            localStorage.setItem('f_stats', data.v);
+            location.reload();
+        } catch(e) { alert("Invalid Code!"); }
+    }
+
     function saveAll() {
-        const data = [];
-        for(let i=0; i<6; i++) {
-            const c = document.getElementById(`s-${i}`);
-            data.push({
-                name: c.querySelector('.name-input').value,
-                c: c.querySelector('.c').value,
-                s: c.querySelector('.s').value,
-                m: c.querySelector('.m').value
-            });
-        }
-        localStorage.setItem('rpg_skills', JSON.stringify(data));
-        localStorage.setItem('rpg_stats', JSON.stringify({
-            cur: parseInt(document.getElementById('curHP').innerText),
-            max: parseInt(document.getElementById('maxHP').value)
+        const sk = [];
+        document.querySelectorAll('.skill-card').forEach(c => {
+            sk.push({ n: c.querySelector('.sn').value, c: c.querySelector('.sc').value, s: c.querySelector('.ss').value, m: c.querySelector('.sm').value });
+        });
+        const ab = { str: document.getElementById('a-str').value, dex: document.getElementById('a-dex').value, con: document.getElementById('a-con').value, int: document.getElementById('a-int').value, wis: document.getElementById('a-wis').value, cha: document.getElementById('a-cha').value };
+        localStorage.setItem('f_skills', JSON.stringify(sk));
+        localStorage.setItem('f_stats', JSON.stringify({
+            cur: document.getElementById('curHP').innerText, max: document.getElementById('maxHP').value,
+            gc: document.getElementById('gold-cur').value, gl: gLife, ks: kSess, kl: kLife,
+            name: document.getElementById('char-name').value, notes: document.getElementById('notes-area').value,
+            img: document.getElementById('char-img').src, ab: ab
         }));
-        addLog("System Saved.");
     }
 
     init();
