@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Legend: House of the Boar</title>
+    <style>
+        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #fbbf24; --hp: #10b981; --dm: #f43f5e; --wire: #38bdf8; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; overflow-x: hidden; }
+        .container { width: 100%; max-width: 500px; margin: auto; background: var(--card); padding: 12px; border-radius: 20px; position: relative; min-height: 95vh; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; }
+        
+        .crest-slot { position: absolute; top: 15px; right: 15px; width: 60px; height: 60px; border: 2px solid var(--accent); background: #FFD700; z-index: 20; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .crest-slot img { width: 100%; height: 100%; object-fit: contain; display: none; }
+        .crest-fallback { position: absolute; font-size: 24px; color: #000; pointer-events: none; }
+
+        .tabs-container { display: flex; overflow-x: auto; border-bottom: 1px solid #334155; margin-bottom: 10px; padding-right: 70px; }
+        .tab-btn { padding: 12px; border: none; background: none; color: #64748b; font-weight: bold; font-size: 0.65rem; cursor: pointer; flex: 1; min-width: 55px; white-space: nowrap; }
+        .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+        .panel { display: none; } 
+        .panel.active { display: block; }
+
+        #welcome-overlay { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: var(--accent); font-size: 2.2rem; font-weight: 900; text-transform: uppercase;
+            text-shadow: 3px 3px 10px rgba(0,0,0,0.9); pointer-events: none; opacity: 0; z-index: 100;
+            text-align: center; width: 100%;
+        }
+        .fade-in-out { animation: welcomeFade 3s ease-in-out forwards; }
+        @keyframes welcomeFade { 
+            0% { opacity: 0; transform: translate(-50%, -40%); }
+            20% { opacity: 1; transform: translate(-50%, -50%); }
+            80% { opacity: 1; transform: translate(-50%, -50%); }
+            100% { opacity: 0; transform: translate(-50%, -60%); }
+        }
+
+        .card { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 10px; margin-bottom: 8px; }
+        .roll-btn { width: 42px; height: 42px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; cursor: pointer; font-size: 1.1rem; }
+        .dice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .die-wire { border: 1px solid var(--wire); border-radius: 8px; aspect-ratio: 1/1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+        #log { margin-top: 10px; padding: 10px; background: #000; color: var(--wire); font-family: monospace; height: 80px; overflow-y: auto; border-radius: 8px; font-size: 0.7rem; border: 1px solid #1e293b; }
+        textarea { width: 100%; background: #0f172a; color: white; border: 1px solid #334155; border-radius: 8px; padding: 10px; box-sizing: border-box; min-height: 150px; font-family: inherit; }
+        .save-bar { margin-top: 15px; width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="welcome-overlay">HOUSE OF THE BOAR</div>
+
+    <div class="crest-slot" onclick="document.getElementById('crest-upload').click()">
+        <span id="crest-emoji" class="crest-fallback">🛡️</span>
+        <img id="family-crest" src="crest.png" alt="Crest" onerror="this.style.display='none'; document.getElementById('crest-emoji').style.display='block';" onload="this.style.display='block'; document.getElementById('crest-emoji').style.display='none';">
+        <input type="file" id="crest-upload" style="display:none" onchange="uploadCrest(this)">
+    </div>
+
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="showTab('portrait', this)">🖼️ ART</button>
+        <button class="tab-btn" onclick="showTab('dice', this)">🎲 DICE</button>
+        <button class="tab-btn" onclick="showTab('hero', this)">👤 HERO</button>
+        <button class="tab-btn" onclick="showTab('comb', this)">⚔️ COMBAT</button>
+        <button class="tab-btn" onclick="showTab('ledger', this)">📜 LEDGER</button>
+        <button class="tab-btn" onclick="showTab('dm', this)">👺 DM</button>
+    </div>
+
+    <div id="portrait" class="panel active">
+        <div style="text-align:center;">
+            <img id="char-img-full" src="data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='400' height='400' fill='%231e293b'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-family='sans-serif'%3ETap Hero Tab to Upload Art%3C/text%3E%3C/svg%3E" style="width:100%; border-radius:12px; border:2px solid var(--primary);">
+        </div>
+    </div>
+
+    <div id="dice" class="panel">
+        <div class="dice-grid">
+            <div class="die-wire" onclick="vRoll(4, this)"><h2>-</h2><span>d4</span></div>
+            <div class="die-wire" onclick="vRoll(6, this)"><h2>-</h2><span>d6</span></div>
+            <div class="die-wire" onclick="vRoll(8, this)"><h2>-</h2><span>d8</span></div>
+            <div class="die-wire" onclick="vRoll(10, this)"><h2>-</h2><span>d10</span></div>
+            <div class="die-wire" onclick="vRoll(12, this)"><h2>-</h2><span>d12</span></div>
+            <div class="die-wire" onclick="vRoll(20, this)"><h2>-</h2><span>d20</span></div>
+            <div class="dual-d10" style="grid-column: span 2; display: flex; gap: 10px; padding: 10px; border: 1px dashed var(--wire); border-radius: 8px;" onclick="rollD100()">
+                <div style="flex:1; text-align:center;"><h3 id="d10-tens" style="margin:0">-</h3><small>10s</small></div>
+                <div style="flex:1; text-align:center;"><h3 id="d10-units" style="margin:0">-</h3><small>1s</small></div>
+                <div style="flex:1; text-align:center;"><h2 id="d100-total" style="margin:0; color:var(--wire)">-</h2><small>D100</small></div>
+            </div>
+            <button onclick="clearDice()" style="background:var(--dm); border:none; color:white; border-radius:8px; font-weight:bold;">CLR</button>
+        </div>
+    </div>
+
+    <div id="hero" class="panel">
+        <div style="text-align:center;">
+            <img id="char-img-thumb" src="data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='40' cy='40' r='40' fill='%23334155'/%3E%3C/svg%3E" onclick="document.getElementById('file-in').click()" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); cursor:pointer;">
+            <input type="file" id="file-in" style="display:none" onchange="uploadImg(this)">
+            <h2 style="margin:5px 0;"><input id="char-name" placeholder="Character Name" style="background:none; border:none; text-align:center; color:white; width:100%;"></h2>
+            <h4 style="margin:0 0 10px 0;"><input id="char-title" placeholder="Class / Title / Legend" style="background:none; border:none; text-align:center; color:var(--wire); width:100%; font-size:0.9rem;"></h4>
+            <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:12px; display:inline-block; border:1px solid #334155;">
+                <label style="font-size:0.6rem; color:var(--accent); display:block; font-weight:bold;">ARMOR CLASS</label>
+                <input type="number" id="char-ac" value="10" style="background:none; border:none; color:white; font-size:1.8rem; text-align:center; width:60px; font-weight:900;">
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:15px;">
+                <div style="background:#0f172a; padding:5px; border-radius:8px;"><label style="font-size:0.5rem; color:var(--primary);">STR</label><input id="s-str" value="10" style="background:none; border:none; color:white; text-align:center; width:100%;"></div>
+                <div style="background:#0f172a; padding:5px; border-radius:8px;"><label style="font-size:0.5rem; color:var(--primary);">DEX</label><input id="s-dex" value="10" style="background:none; border:none; color:white; text-align:center; width:100%;"></div>
+                <div style="background:#0f172a; padding:5px; border-radius:8px;"><label style="font-size:0.5rem; color:var(--primary);">CON</label><input id="s-con" value="10" style="background:none; border:none; color:white; text-align:center; width:100%;"></div>
+                <div style="background:#0f172a; padding:5px; border-radius:8px;"><label style="font-size:0.5rem; color:var(--primary);">INT</label><input id="s-int" value="10" style="background:none; border:none; color:white; text-align:center; width:100%;"></div>
+                <div style="background:#0f172a; padding:5px; border-radius:8px;"><label style="font-size:0.5rem; color:var(--primary);">WIS</label><input id="s-wis" value="10" style="background:none; border:none; color:white; text-align:center; width:100%;"></div>
+                <div style="background:#0f172a; padding:5px; border-radius:8px;"><label style="font-size:0.5rem; color:var(--primary);">CHA</label><input id="s-cha" value="10" style="background:none; border:none; color:white; text-align:center; width:100%;"></div>
+            </div>
+            <button onclick="saveAll()" class="save-bar">💾 SAVE CHARACTER DATA</button>
+        </div>
+    </div>
+
+    <div id="comb" class="panel">
+        <div style="background:var(--card); border:2px solid var(--hp); border-radius:12px; padding:15px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+            <div style="text-align:center;"><label style="font-size:0.6rem; color:var(--hp);">CURRENT HP</label><div style="font-size:2rem; font-weight:900;" id="combHP">20</div></div>
+            <input type="number" id="hp-mod-val" placeholder="+/-" style="width:60px; height:40px; background:#0f172a; border:1px solid #334155; color:white; text-align:center; border-radius:8px; font-size:1.2rem;">
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <button onclick="adjustHP(true)" style="background:var(--hp); border:none; color:white; padding:5px 15px; border-radius:5px; font-weight:bold;">HEAL</button>
+                <button onclick="adjustHP(false)" style="background:var(--dm); border:none; color:white; padding:5px 15px; border-radius:5px; font-weight:bold;">HIT</button>
+            </div>
+        </div>
+        <div id="player-actions"></div>
+    </div>
+
+    <div id="ledger" class="panel">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div style="background:#0f172a; padding:10px; border-radius:10px; text-align:center;">
+                <label style="font-size:0.6rem; color:var(--accent);">GOLD</label>
+                <div style="font-size:1.5rem; font-weight:bold; margin-bottom:5px;" id="gold-val">0</div>
+                <button onclick="modGold(-1)" style="background:#334155; color:white; border:none; padding:5px 12px; border-radius:4px;">-</button>
+                <button onclick="modGold(1)" style="background:var(--hp); color:white; border:none; padding:5px 12px; border-radius:4px;">+</button>
+            </div>
+            <div style="background:#0f172a; padding:10px; border-radius:10px; text-align:center;">
+                <label style="font-size:0.6rem; color:var(--dm);">KILLS</label>
+                <div id="tally-display" style="font-size:1.2rem; color:var(--accent); min-height:1.5rem;">---</div>
+                <button onclick="modKills(-1)" style="background:#334155; color:white; border:none; padding:3px 6px; border-radius:4px; font-size:0.5rem;">-</button>
+                <button onclick="addKill()" style="background:none; border:1px solid var(--dm); color:var(--dm); font-size:0.6rem; padding:5px; border-radius:4px;">+1 KILL</button>
+            </div>
+        </div>
+        <textarea id="notes-area" placeholder="Write logs..."></textarea>
+    </div>
+
+    <div id="dm" class="panel"><div id="villain-actions"></div></div>
+    <div id="log">Log Initialized...</div>
+</div>
+
+<script>
+    let gold = 0; let kills = 0;
+
+    window.onload = function() { init(); };
+
+    function init() {
+        const pCont = document.getElementById('player-actions');
+        const vCont = document.getElementById('villain-actions');
+        if(!pCont || !vCont) return;
+
+        const savedSkills = JSON.parse(localStorage.getItem('hero_skills')) || Array(6).fill({n:'Weapon/Skill', q:1, t:20, g:0, tm:0});
+        pCont.innerHTML = '';
+        savedSkills.forEach((s, i) => { pCont.innerHTML += createCard('p', i, s.n, s.q, s.t, s.g, s.tm); });
+        
+        vCont.innerHTML = '';
+        for(let i=0; i<6; i++) { vCont.innerHTML += createCard('v', i, `Villain ${i+1}`, 1, 20, 0, 0, true); }
+        
+        loadData();
+        triggerWelcome();
+    }
+
+    // --- COMPRESSOR LOGIC ---
+    function shrinkImage(base64Str, maxWidth, callback) {
+        const img = new Image();
+        img.src = base64Str;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const scale = maxWidth / img.width;
+            canvas.width = maxWidth;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            callback(canvas.toDataURL('image/jpeg', 0.7)); 
+        };
+    }
+
+    function uploadImg(i) { 
+        if(i.files[0]) { 
+            const r = new FileReader(); 
+            r.onload = (e) => { 
+                shrinkImage(e.target.result, 400, (shrunk) => {
+                    document.getElementById('char-img-full').src = shrunk; 
+                    document.getElementById('char-img-thumb').src = shrunk; 
+                    saveAll();
+                });
+            }; 
+            r.readAsDataURL(i.files[0]); 
+        } 
+    }
+
+    function uploadCrest(input) {
+        if (input.files && input.files[0]) {
+            const r = new FileReader();
+            r.onload = (e) => {
+                shrinkImage(e.target.result, 120, (shrunk) => {
+                    const img = document.getElementById('family-crest');
+                    img.src = shrunk;
+                    img.style.display = 'block';
+                    document.getElementById('crest-emoji').style.display = 'none';
+                    saveAll();
+                });
+            };
+            r.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function saveAll() {
+        try {
+            const pS = [];
+            for(let i=0; i<6; i++) { 
+                const nEl = document.querySelector(`.p-n-${i}`);
+                if(nEl) pS.push({n:nEl.value, q:document.querySelector(`.p-q-${i}`).value, t:document.querySelector(`.p-t-${i}`).value, g:document.querySelector(`.p-g-${i}`).value, tm:document.querySelector(`.p-tm-${i}`).value}); 
+            }
+            const data = {
+                hp: document.getElementById('combHP').innerText,
+                name: document.getElementById('char-name').value,
+                title: document.getElementById('char-title').value,
+                ac: document.getElementById('char-ac').value,
+                gold: gold,
+                kills: kills,
+                img: document.getElementById('char-img-full').src,
+                crest: document.getElementById('family-crest').src,
+                skills: pS
+            };
+            localStorage.setItem('boar_data', JSON.stringify(data));
+            addLog("Data Saved.");
+        } catch (e) {
+            addLog("STORAGE FULL! Clear your browser cache.");
+            console.error(e);
+        }
+    }
+
+    function loadData() {
+        const d = JSON.parse(localStorage.getItem('boar_data'));
+        if(!d) return;
+        document.getElementById('combHP').innerText = d.hp || 20;
+        document.getElementById('char-name').value = d.name || "";
+        document.getElementById('char-title').value = d.title || "";
+        document.getElementById('char-ac').value = d.ac || 10;
+        gold = d.gold || 0; kills = d.kills || 0;
+        document.getElementById('gold-val').innerText = gold;
+        if(d.img && !d.img.includes('svg')) { document.getElementById('char-img-full').src = d.img; document.getElementById('char-img-thumb').src = d.img; }
+        if(d.crest && d.crest.length > 50) { 
+            const img = document.getElementById('family-crest');
+            img.src = d.crest; 
+            img.style.display = 'block'; 
+            document.getElementById('crest-emoji').style.display = 'none';
+        }
+        updateTally();
+    }
+
+    function showTab(id, btn) { 
+        if(!id || !btn) return;
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); 
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); 
+        const target = document.getElementById(id);
+        if(target) { target.classList.add('active'); btn.classList.add('active'); }
+        if(id === 'portrait') triggerWelcome();
+    }
+
+    function triggerWelcome() {
+        const ov = document.getElementById('welcome-overlay');
+        if(!ov) return;
+        ov.classList.remove('fade-in-out');
+        void ov.offsetWidth; 
+        ov.classList.add('fade-in-out');
+    }
+
+    function createCard(type, i, name, q, t, g, tm, isDM=false) {
+        let color = isDM ? 'var(--dm)' : 'var(--primary)';
+        let hpLine = isDM ? `<div style="display:flex; gap:5px; margin-top:5px;"><button onclick="modVHP(${i},-1)" style="background:#334155; border:none; color:white; width:25px; border-radius:4px;">-</button><div style="flex:1; background:#1e293b; text-align:center; font-weight:bold; font-size:0.8rem;">HP: <span class="v-hp-${i}">20</span></div><button onclick="modVHP(${i},1)" style="background:#334155; border:none; color:white; width:25px; border-radius:4px;">+</button></div>` : '';
+        return `<div class="card" style="border-color:${isDM ? 'var(--dm)' : '#334155'}"><div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;"><div class="roll-btn" style="background:${color}" onclick="rollCard('${type}', ${i})">-</div><input class="${type}-n-${i}" value="${name}" style="background:#1e293b; border:none; color:white; padding:4px; border-radius:4px; width:100%;"></div><div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:4px;"><div style="text-align:center"><label style="font-size:0.5rem; color:#64748b;">QTY</label><input type="number" class="${type}-q-${i}" value="${q}" style="width:100%; background:#1e293b; border:none; color:white; text-align:center"></div><div style="text-align:center"><label style="font-size:0.5rem; color:#64748b;">DIE</label><input type="number" class="${type}-t-${i}" value="${t}" style="width:100%; background:#1e293b; border:none; color:white; text-align:center"></div><div style="text-align:center"><label style="font-size:0.5rem; color:#64748b;">MOD</label><input type="number" class="${type}-g-${i}" value="${g}" style="width:100%; background:#1e293b; border:none; color:white; text-align:center"></div><div style="text-align:center"><label style="font-size:0.5rem; color:#64748b;">TMP</label><input type="number" class="${type}-tm-${i}" value="${tm}" style="width:100%; background:#1e293b; border:none; color:white; text-align:center"></div></div>${hpLine}</div>`;
+    }
+
+    function rollCard(type, i) {
+        const q = parseInt(document.querySelector(`.${type}-q-${i}`).value) || 1;
+        const t = parseInt(document.querySelector(`.${type}-t-${i}`).value) || 20;
+        const g = parseInt(document.querySelector(`.${type}-g-${i}`).value) || 0;
+        const tm = parseInt(document.querySelector(`.${type}-tm-${i}`).value) || 0;
+        let sum = 0; for(let r=0; r<q; r++) { sum += Math.floor(Math.random()*t)+1; }
+        let total = sum + g + tm;
+        const btns = document.querySelectorAll('.roll-btn');
+        const targetBtn = type === 'p' ? btns[i] : btns[i+6];
+        if(targetBtn) targetBtn.innerText = total;
+        addLog(`${document.querySelector(`.${type}-n-${i}`).value}: ${total}`);
+    }
+
+    function vRoll(s, el) { const r = Math.floor(Math.random()*s)+1; el.querySelector('h2').innerText = r; addLog(`d${s}: ${r}`); }
+    function clearDice() { document.querySelectorAll('.die-wire h2, h3, #d100-total').forEach(h => h.innerText = '-'); }
+    function rollD100() {
+        let t = Math.floor(Math.random()*10); let u = Math.floor(Math.random()*10);
+        let tot = (t*10)+u; if(t===0 && u===0) tot=100;
+        document.getElementById('d10-tens').innerText = t*10;
+        document.getElementById('d10-units').innerText = u;
+        document.getElementById('d100-total').innerText = tot;
+        addLog(`D100: ${tot}`);
+    }
+    
+    function modGold(v) { gold = Math.max(0, gold + v); document.getElementById('gold-val').innerText = gold; }
+    function addKill() { kills++; updateTally(); }
+    function modKills(v) { kills = Math.max(0, kills + v); updateTally(); }
+    function updateTally() {
+        let groups = Math.floor(kills / 5); let rem = kills % 5;
+        let s = ""; for(let i=0; i<groups; i++) s += "卌 ";
+        for(let j=0; j<rem; j++) s += "|";
+        document.getElementById('tally-display').innerText = s || "---";
+    }
+
+    function adjustHP(isHeal) {
+        let cur = parseInt(document.getElementById('combHP').innerText);
+        let val = parseInt(document.getElementById('hp-mod-val').value) || 0;
+        document.getElementById('combHP').innerText = isHeal ? cur + val : Math.max(0, cur - val);
+        document.getElementById('hp-mod-val').value = '';
+    }
+
+    function modVHP(i, v) { const el = document.querySelector(`.v-hp-${i}`); if(el) el.innerText = parseInt(el.innerText) + v; }
+    function addLog(m) { const l = document.getElementById('log'); l.innerHTML = `> ${m}<br>` + l.innerHTML; }
+</script>
+</body>
+</html>
