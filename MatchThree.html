@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Match-3: Final Polish</title>
+    <title>Match-3: Seamless Flow</title>
     <style>
         :root { --bg: #0f0c29; --accent: #24243e; --btn: #00f2fe; }
         body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; touch-action: none; height: 100vh; overflow: hidden; }
-        .header { width: 100%; display: flex; flex-direction: column; align-items: center; background: var(--accent); padding: 10px 0; border-bottom: 3px solid #302b63; }
+        .header { width: 100%; display: flex; flex-direction: column; align-items: center; background: var(--accent); padding: 10px 0; border-bottom: 3px solid #302b63; z-index: 10; }
         .goals { display: flex; gap: 8px; margin-bottom: 5px; }
         .goal-item { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 10px; text-align: center; border: 2px solid transparent; transition: 0.3s; }
         .stats-bar { font-size: 14px; color: var(--btn); font-weight: bold; letter-spacing: 1px; }
+        
         #game-container { position: relative; width: 360px; height: 360px; margin-top: 15px; background: rgba(0,0,0,0.4); border-radius: 12px; box-shadow: inset 0 0 20px #000; }
+        
         .tile { 
             position: absolute; width: 40px; height: 40px; 
             display: flex; align-items: center; justify-content: center; 
@@ -21,29 +23,37 @@
         }
         .tile.selected { box-shadow: 0 0 15px #fff; z-index: 5; background: rgba(255,255,255,0.2); transform: scale(1.1); }
         .tile.matching { transform: scale(0); opacity: 0; }
-        /* Special Labels */
+        
         .missile::after { content: '🚀'; position: absolute; font-size: 12px; bottom: -2px; right: -2px; }
         .bomb::after { content: '💣'; position: absolute; font-size: 12px; bottom: -2px; right: -2px; }
+        
+        /* New Targets Toast Notification */
+        #toast { 
+            position: fixed; top: -100px; background: var(--btn); color: #000; 
+            padding: 15px 40px; border-radius: 30px; font-weight: bold; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000; font-size: 18px;
+        }
+        #toast.show { top: 20px; }
+
         .footer { margin-top: 20px; }
-        #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--accent); padding: 30px; border-radius: 20px; border: 2px solid var(--btn); text-align: center; z-index: 100; box-shadow: 0 0 50px #000; }
+        button { background:#333; color:white; border:1px solid #555; padding:8px 20px; border-radius:20px; cursor:pointer; }
     </style>
 </head>
 <body>
+
+<div id="toast">NEW TARGETS! 🎯</div>
 
 <div class="header">
     <div class="goals" id="goal-container"></div>
     <div class="stats-bar">MOVES: <span id="move-val">0</span> | EFFICIENCY: <span id="ratio-val">0.00</span></div>
 </div>
+
 <div id="game-container"></div>
-<div class="footer"><button onclick="manualShuffle()" style="background:#333; color:white; border:1px solid #555; padding:8px 20px; border-radius:20px; cursor:pointer;">Shuffle 🎲</button></div>
 
-
-<div id="modal">
-    <h2 style="color:var(--btn)">Quest Complete!</h2>
-    <div id="final-stats" style="font-size: 22px; margin: 20px 0;"></div>
-    <button onclick="nextLevel()" style="background: var(--btn); border:none; padding: 12px 25px; border-radius: 8px; font-weight:bold; cursor:pointer; color:#000;">NEXT LEVEL</button>
+<div class="footer">
+    <button onclick="manualShuffle()">Shuffle 🎲</button>
 </div>
-
 
 <script>
 const icons = ['🌸', '😊', '⭐', '💎'];
@@ -56,9 +66,12 @@ let isBusy = false, selected = null;
 function init() {
     const container = document.getElementById('game-container');
     container.innerHTML = '';
-    grid = Array.from({length:size}, () => Array.from({length:size}, () => ({ id: 't'+Math.random().toString(36).substr(2,9), type: Math.floor(Math.random()*4), special: null })));
-    while(findMatches().length > 0) {
-        grid.forEach(r => r.forEach(c => c.type = Math.floor(Math.random()*4)));
+    // Create new grid only if it doesn't exist (first start)
+    if (grid.length === 0) {
+        grid = Array.from({length:size}, () => Array.from({length:size}, () => ({ id: 't'+Math.random().toString(36).substr(2,9), type: Math.floor(Math.random()*4), special: null })));
+        while(findMatches().length > 0) {
+            grid.forEach(r => r.forEach(c => c.type = Math.floor(Math.random()*4)));
+        }
     }
     renderGoals();
     drawBoard();
@@ -82,6 +95,7 @@ function drawBoard() {
         div.innerText = icons[cell.type];
         div.onclick = () => handleTileClick(r, c);
     }));
+    // Remove tiles that aren't in grid
     Array.from(container.children).forEach(t => { if(!existingIds.has(t.id)) { t.classList.add('matching'); setTimeout(()=>t.remove(), 400); } });
     updateStats();
 }
@@ -127,8 +141,8 @@ async function processMatches(spawnR, spawnC) {
     toClear.forEach(pos => {
         const [r, c] = pos.split(',').map(Number);
         const cell = grid[r][c];
-        if (cell.special === 'missile') { for(let i=0; i<size; i++) { toClear.add(`${r},${i}`); toClear.add(`${i},${c}`); } }
-        if (cell.special === 'bomb') { for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) if(grid[r+i] && grid[r+i][c+j]) toClear.add(`${r+i},${c+j}`); }
+        if (cell && cell.special === 'missile') { for(let i=0; i<size; i++) { toClear.add(`${r},${i}`); toClear.add(`${i},${c}`); } }
+        if (cell && cell.special === 'bomb') { for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) if(grid[r+i] && grid[r+i][c+j]) toClear.add(`${r+i},${c+j}`); }
     });
 
     toClear.forEach(pos => {
@@ -172,23 +186,27 @@ function updateStats() {
         const box = document.getElementById(`gb${i}`);
         if(box) box.style.borderColor = g >= targets[i] ? 'var(--btn)' : 'transparent';
     });
-    const total = goals.reduce((a,b)=>a+b,0);
+    // Use a hidden running total for efficiency so we don't lose progress on "level up"
+    const totalCollected = goals.reduce((a,b)=>a+b,0);
     document.getElementById('move-val').innerText = moves;
-    document.getElementById('ratio-val').innerText = moves === 0 ? "0.00" : (total/moves).toFixed(2);
+    document.getElementById('ratio-val').innerText = moves === 0 ? "0.00" : (totalCollected / moves).toFixed(2);
 }
 
-function checkWin() { if (goals.every((g, i) => g >= targets[i])) { 
-    const ratio = (goals.reduce((a,b)=>a+b,0) / moves).toFixed(2);
-    document.getElementById('final-stats').innerText = `Efficiency: ${ratio}`;
-    document.getElementById('modal').style.display = 'block'; 
-} }
+function checkWin() { 
+    if (goals.every((g, i) => g >= targets[i])) { 
+        showToast();
+        // Reset goals but DON'T reset moves or grid
+        goals = [0,0,0,0];
+        targets = targets.map(t => Math.floor(Math.random()*10)+10);
+        renderGoals();
+        updateStats();
+    } 
+}
 
-function nextLevel() {
-    document.getElementById('modal').style.display = 'none';
-    //moves = 0; 
-    goals = [0,0,0,0];
-    targets = targets.map(t => Math.floor(Math.random()*10)+10);
-    init();
+function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
 }
 
 function manualShuffle() { if(!isBusy) { grid.forEach(row => row.forEach(cell => cell.type = Math.floor(Math.random()*4))); drawBoard(); } }
