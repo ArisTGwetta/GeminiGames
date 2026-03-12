@@ -175,15 +175,16 @@ function updateStats() {
     document.getElementById('ratio-val').innerText = moves === 0 ? "0.00" : (total/moves).toFixed(2);
 }
 
-function checkWin() { if (goals.every((g, i) => g >= targets[i])) { 
-    const ratio = (goals.reduce((a,b)=>a+b,0) / moves).toFixed(2);
-    document.getElementById('final-stats').innerText = `Efficiency: ${ratio}`;
-    document.getElementById('modal').style.display = 'block'; 
-} }
+//function checkWin() { if (goals.every((g, i) => g >= targets[i])) { 
+    //const ratio = (goals.reduce((a,b)=>a+b,0) / moves).toFixed(2);
+    //document.getElementById('final-stats').innerText = `Efficiency: ${ratio}`;
+    //document.getElementById('modal').style.display = 'block'; 
+//} }
 
 function nextLevel() {
     document.getElementById('modal').style.display = 'none';
-    moves = 0; goals = [0,0,0,0];
+    //moves = 0; 
+    goals = [0,0,0,0];
     targets = targets.map(t => Math.floor(Math.random()*10)+10);
     init();
 }
