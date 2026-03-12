@@ -3715,6 +3715,10 @@ if (WORLD.map[r][c] === 2) {
                 WORLD.map[r][c] = 0;
                 score += 10;
             }
+            if (WORLD.map[r][c] === 6) {
+                WORLD.map[r][c] = 0;
+                score += 10;
+            }
 
             // --- KEY PICKUP ---
             if (WORLD.map[r][c] === 3) {
