@@ -2,271 +2,179 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-<title>Puzzle Game</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merge Puzzle 2048 – Mobile + Desktop Friendly</title>
 <style>
 body {
-  margin:0;
-  font-family: Arial;
-  background:#0f172a;
-  color:white;
-  text-align:center;
+  margin:0; font-family: Arial; background:#0f172a; color:white; text-align:center;
 }
-
-h1 {
-  font-size:22px;
-  margin:10px;
+h1 { margin:10px; font-size:22px; }
+#controls { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:10px; }
+input, button { font-size:18px; padding:10px; width:90%; max-width:300px; border-radius:8px; border:none; }
+button { background:#38bdf8; color:black; cursor:pointer; }
+#grid {
+  display: grid; margin:0 auto; gap:6px;
+  width:90vw; max-width:500px; aspect-ratio:1/1;
+  grid-template-columns: repeat(var(--size), 1fr); grid-auto-rows:1fr;
 }
-
-#controls {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:8px;
-}
-
-input, button {
-  font-size:18px;
-  padding:10px;
-  width:90%;
-  max-width:300px;
-  border-radius:8px;
-  border:none;
-}
-
-button {
-  background:#38bdf8;
-  color:black;
-}
-
-#puzzle {
-  position:relative;
-  margin:15px auto;
-  touch-action:none;
-  border-radius:12px;
-  overflow:hidden;
-  background:#020617;
-}
-
-.tile {
-  position:absolute;
-  border-radius:8px;
+.cell {
+  width:100%; height:100%; display:flex; justify-content:center; align-items:center;
+  font-size:1.5em; font-weight:bold; border-radius:8px;
+  background:#ddd; color:black; background-size:cover; background-position:center;
   transition: all 0.25s ease;
 }
-
 #overlay {
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:black;
-  display:none;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
+  position:fixed; top:0; left:0; width:100%; height:100%; background:black;
+  display:none; justify-content:center; align-items:center; flex-direction:column;
 }
-
 #zoomImage {
-  max-width:90vw;
-  max-height:60vh;
-  object-fit:contain;
-  transform: scale(0.6);
-  opacity:0;
-  transition: all 0.6s ease;
+  max-width:90vw; max-height:60vh; object-fit:contain;
+  transform: scale(0.6); opacity:0; transition: all 0.6s ease;
 }
-
 </style>
 </head>
-
 <body>
 
-<h1>🧩 Puzzle Game</h1>
+<h1>🎯 Merge Puzzle 2048</h1>
 
 <div id="controls">
-<button onclick="setMode('story')">Story Mode</button>
-<button onclick="setMode('quick')">Quick Play</button>
-
-Size:
-<input type="number" id="size" value="4" min="2" max="6">
-
-<input type="file" id="imgUpload">
-
-<button onclick="startGame()">Start</button>
+  <button onclick="startGame()">Start New Game</button>
+  Grid Size: <input type="number" id="size" value="4" min="3" max="6">
+  Target Tile Value: <input type="number" id="target" value="32" step="2">
+  <input type="file" id="imgUpload" multiple>
 </div>
 
-<p>Moves: <span id="moves">0</span></p>
-
-<div id="puzzle"></div>
+<p>Score: <span id="score">0</span></p>
+<div id="grid"></div>
 
 <div id="overlay">
-  <h2>✨ Completed ✨</h2>
+  <h2>🏆 You Completed the Puzzle!</h2>
   <img id="zoomImage">
   <br>
-  <button onclick="nextLevel()">Next</button>
+  <button onclick="restartGame()">Restart</button>
 </div>
 
 <script>
-let size, tiles, empty, moves;
-let imageSrc = '';
-let mode = 'story';
-let level = 0;
+let size=4, target=32, grid=[], score=0, moved=false, images={};
+const gridEl=document.getElementById('grid');
+const overlay=document.getElementById('overlay');
+const zoomImage=document.getElementById('zoomImage');
 
-const storyImages = [
-  "images/1.jpg",
-  "images/2.jpg",
-  "images/3.jpg"
-];
-
-const puzzle = document.getElementById('puzzle');
-
-document.getElementById('imgUpload').onchange = e=>{
-  imageSrc = URL.createObjectURL(e.target.files[0]);
+document.getElementById('imgUpload').onchange=e=>{
+  const files=e.target.files;
+  for(let i=0;i<files.length;i++){
+    images[2**i]=URL.createObjectURL(files[i]);
+  }
 };
 
-function setMode(m){
-  mode = m;
-}
-
 function startGame(){
-  size = +document.getElementById('size').value;
-
-  let tileSize = Math.min(window.innerWidth * 0.22, 100);
-  puzzle.style.width = puzzle.style.height = (tileSize * size) + "px";
-
-  if(mode==='story'){
-    imageSrc = storyImages[level] || storyImages[0];
-  }
-
-  tiles = [...Array(size*size).keys()];
-  empty = tiles.length-1;
-
-  for(let i=0;i<150;i++) randomMove();
-
-  moves=0;
-  document.getElementById('moves').textContent=0;
-  document.getElementById('overlay').style.display="none";
-  document.getElementById('controls').style.display="flex";
-
-  draw();
+  size=+document.getElementById('size').value;
+  target=+document.getElementById('target').value;
+  gridEl.style.setProperty('--size', size);
+  score=0; document.getElementById('score').textContent=score;
+  grid=Array.from({length:size}, ()=>Array(size).fill(null));
+  spawnTile(); spawnTile();
+  overlay.style.display='none';
+  drawGrid();
 }
 
-function draw(){
-  puzzle.innerHTML='';
-  let tileSize = puzzle.clientWidth / size;
+function restartGame(){ startGame(); }
 
-  tiles.forEach((val,i)=>{
-    if(val===size*size-1) return;
+function drawGrid(){
+  gridEl.innerHTML='';
+  grid.forEach(row=>row.forEach(val=>{
+    const cell=document.createElement('div'); cell.className='cell';
+    if(val){
+      cell.textContent=images[val]? '': val;
+      if(images[val]) cell.style.backgroundImage=`url(${images[val]})`;
+    }
+    gridEl.appendChild(cell);
+  }));
+}
 
-    let d=document.createElement('div');
-    d.className='tile';
+function spawnTile(){
+  let empty=[];
+  grid.forEach((row,r)=>row.forEach((val,c)=>{if(!val) empty.push([r,c])}));
+  if(empty.length===0) return;
+  let [r,c]=empty[Math.floor(Math.random()*empty.length)];
+  grid[r][c]=2;
+}
 
-    let r=Math.floor(i/size), c=i%size;
-    d.style.width=d.style.height=tileSize+"px";
-    d.style.left=c*tileSize+"px";
-    d.style.top=r*tileSize+"px";
+function slide(row){
+  let arr=row.filter(v=>v!==null);
+  for(let i=0;i<arr.length-1;i++){
+    if(arr[i]===arr[i+1]){
+      arr[i]*=2; score+=arr[i]; arr[i+1]=null;
+    }
+  }
+  return arr.filter(v=>v!==null).concat(Array(row.length-arr.filter(v=>v!==null).length).fill(null));
+}
 
-    let ir=Math.floor(val/size), ic=val%size;
-
-    d.style.backgroundImage=`url(${imageSrc})`;
-    d.style.backgroundSize=`${size*100}%`;
-    d.style.backgroundPosition=`${ic/(size-1)*100}% ${ir/(size-1)*100}%`;
-
-    d.onclick=()=>move(i);
-
-    puzzle.appendChild(d);
+function move(dir){
+  moved=false;
+  let rotated=false;
+  if(dir==='up'){ grid=rotate(grid); rotated=true; }
+  if(dir==='down'){ grid=rotate(grid); grid=grid.map(row=>row.reverse()); rotated=true; }
+  if(dir==='right'){ grid=grid.map(row=>row.reverse()); }
+  grid=grid.map(row=>{
+    let newRow=slide(row);
+    if(newRow.toString()!==row.toString()) moved=true;
+    return newRow;
   });
+  if(dir==='right'){ grid=grid.map(row=>row.reverse()); }
+  if(rotated&&dir==='up'){ grid=rotate(grid); grid=rotate(grid); grid=rotate(grid); }
+  if(rotated&&dir==='down'){ grid=rotate(grid); }
+  if(moved) spawnTile();
+  drawGrid();
+  document.getElementById('score').textContent=score;
+  checkWin();
+  checkLose();
 }
 
-function move(i){
-  if(canMove(i)){
-    [tiles[i],tiles[empty]]=[tiles[empty],tiles[i]];
-    empty=i;
-    moves++;
-    document.getElementById('moves').textContent=moves;
-    draw();
+function rotate(mat){ return mat[0].map((v,i)=>mat.map(row=>row[i])); }
 
-    if(isSolved()) win();
+function checkWin(){
+  for(let row of grid) for(let val of row) if(val===target) triggerWin();
+}
+
+function checkLose(){
+  if(grid.flat().some(v=>!v)) return;
+  for(let r=0;r<size;r++) for(let c=0;c<size;c++){
+    let val=grid[r][c];
+    if((r>0 && grid[r-1][c]===val)||(r<size-1 && grid[r+1][c]===val)||
+       (c>0 && grid[r][c-1]===val)||(c<size-1 && grid[r][c+1]===val)) return;
   }
+  alert('No moves left – game over!'); startGame();
 }
 
-function canMove(i){
-  let r=Math.floor(i/size), c=i%size;
-  let er=Math.floor(empty/size), ec=empty%size;
-  return (r===er&&Math.abs(c-ec)===1)||(c===ec&&Math.abs(r-er)===1);
+function triggerWin(){
+  overlay.style.display='flex';
+  zoomImage.src=images[target]||'';
+  setTimeout(()=>{ zoomImage.style.transform='scale(1)'; zoomImage.style.opacity='1'; },50);
 }
 
-function randomMove(){
-  let opts=[];
-  let r=Math.floor(empty/size), c=empty%size;
-
-  if(r>0) opts.push(empty-size);
-  if(r<size-1) opts.push(empty+size);
-  if(c>0) opts.push(empty-1);
-  if(c<size-1) opts.push(empty+1);
-
-  let t=opts[Math.floor(Math.random()*opts.length)];
-  [tiles[t],tiles[empty]]=[tiles[empty],tiles[t]];
-  empty=t;
-}
-
-function isSolved(){
-  return tiles.every((v,i)=>v===i);
-}
-
-function win(){
-  let overlay=document.getElementById('overlay');
-  let img=document.getElementById('zoomImage');
-
-  img.src=imageSrc;
-
-  overlay.style.display="flex";
-  document.getElementById('controls').style.display="none";
-
-  setTimeout(()=>{
-    img.style.transform="scale(1)";
-    img.style.opacity="1";
-  },50);
-}
-
-function nextLevel(){
-  document.getElementById('zoomImage').style.transform="scale(0.6)";
-  document.getElementById('zoomImage').style.opacity="0";
-
-  level++;
-  startGame();
-}
-
-// Swipe support
-let startX, startY;
-
-puzzle.addEventListener("touchstart", e=>{
-  startX=e.touches[0].clientX;
-  startY=e.touches[0].clientY;
+// Keyboard
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowUp') move('up');
+  if(e.key==='ArrowDown') move('down');
+  if(e.key==='ArrowLeft') move('left');
+  if(e.key==='ArrowRight') move('right');
 });
 
-puzzle.addEventListener("touchend", e=>{
+// Touch swipe
+let startX,startY;
+gridEl.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; startY=e.touches[0].clientY; });
+gridEl.addEventListener('touchend', e=>{
   let dx=e.changedTouches[0].clientX-startX;
   let dy=e.changedTouches[0].clientY-startY;
-
   if(Math.abs(dx)>Math.abs(dy)){
-    if(dx>20) tryMove('right');
-    else if(dx<-20) tryMove('left');
+    if(dx>20) move('right'); else if(dx<-20) move('left');
   } else {
-    if(dy>20) tryMove('down');
-    else if(dy<-20) tryMove('up');
+    if(dy>20) move('down'); else if(dy<-20) move('up');
   }
 });
 
-function tryMove(dir){
-  let r=Math.floor(empty/size), c=empty%size;
-
-  if(dir==='up' && r<size-1) move(empty+size);
-  if(dir==='down' && r>0) move(empty-size);
-  if(dir==='left' && c<size-1) move(empty+1);
-  if(dir==='right' && c>0) move(empty-1);
-}
+startGame();
 </script>
 
 </body>
