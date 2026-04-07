@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Merge Puzzle – Story Mode</title>
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+h1 { margin:10px; font-size:22px; }
+#controls {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+input, button {
+  font-size:18px; padding:10px; width:90%; max-width:300px; border-radius:8px; border:none;
+}
+button { background:#38bdf8; color:black; }
+#grid { display:grid; margin:15px auto; touch-action:none; background:#020617; border-radius:12px; }
+.cell {
+  width:80px; height:80px; margin:4px; display:flex; justify-content:center; align-items:center;
+  font-size:24px; font-weight:bold; color:black; background:#f0f0f0; border-radius:8px;
+  transition: all 0.2s ease;
+  background-size: cover; background-position: center;
+}
+#overlay {
+  position:fixed; top:0; left:0; width:100%; height:100%; background:black; display:none;
+  justify-content:center; align-items:center; flex-direction:column;
+}
+#zoomImage {
+  max-width:90vw; max-height:60vh; object-fit:contain; transform: scale(0.6);
+  opacity:0; transition: all 0.6s ease;
+}
+</style>
+</head>
+<body>
+
+<h1>🎯 Merge Puzzle – Story Mode</h1>
+
+<div id="controls">
+  <button onclick="startGame()">Start New Game</button>
+  Grid Size: <input type="number" id="size" value="4" min="3" max="6">
+  Target Tile Value: <input type="number" id="target" value="32" step="2">
+  <input type="file" id="imgUpload" multiple>
+</div>
+
+<p>Score: <span id="score">0</span></p>
+<div id="grid"></div>
+
+<div id="overlay">
+  <h2>🏆 You Completed the Puzzle!</h2>
+  <img id="zoomImage">
+  <br>
+  <button onclick="restartGame()">Restart</button>
+</div>
+
+<script>
+let size=4, target=32, grid=[], score=0, moved=false, images={};
+let overlay=document.getElementById('overlay');
+let zoomImage=document.getElementById('zoomImage');
+
+document.getElementById('imgUpload').onchange=e=>{
+  const files=e.target.files;
+  for(let i=0;i<files.length;i++){
+    let url=URL.createObjectURL(files[i]);
+    images[2**i]=url;
+  }
+};
+
+function startGame(){
+  size = +document.getElementById('size').value;
+  target = +document.getElementById('target').value;
+  score = 0; document.getElementById('score').textContent=score;
+  grid=Array.from({length:size}, ()=>Array(size).fill(null));
+  spawnTile(); spawnTile();
+  drawGrid();
+  overlay.style.display='none';
+}
+
+function restartGame(){ startGame(); }
+
+function drawGrid(){
+  const container=document.getElementById('grid');
+  container.innerHTML='';
+  container.style.gridTemplateColumns=`repeat(${size}, 1fr)`;
+  grid.forEach((row,r)=>{
+    row.forEach((val,c)=>{
+      const cell=document.createElement('div'); cell.className='cell';
+      if(val){
+        if(images[val]) cell.style.backgroundImage=`url(${images[val]})`; else cell.textContent=val;
+      }
+      container.appendChild(cell);
+    });
+  });
+}
+
+function spawnTile(){
+  let empty=[];
+  grid.forEach((row,r)=>row.forEach((val,c)=>{if(!val) empty.push([r,c])}));
+  if(empty.length===0) return;
+  let [r,c]=empty[Math.floor(Math.random()*empty.length)];
+  grid[r][c]=2;
+}
+
+function slide(row){
+  let arr=row.filter(v=>v!==null);
+  for(let i=0;i<arr.length-1;i++){
+    if(arr[i]===arr[i+1]){
+      arr[i]*=2; score+=arr[i]; arr[i+1]=null;
+    }
+  }
+  return arr.filter(v=>v!==null).concat(Array(row.length-arr.filter(v=>v!==null).length).fill(null));
+}
+
+function move(dir){
+  moved=false;
+  let rotated=false;
+  if(dir==='up'){ grid=rotate(grid); rotated=true; }
+  if(dir==='down'){ grid=rotate(grid); grid=grid.map(row=>row.reverse()); rotated=true; }
+  if(dir==='right'){ grid=grid.map(row=>row.reverse()); }
+  grid=grid.map(row=>{
+    let newRow=slide(row);
+    if(newRow.toString()!==row.toString()) moved=true;
+    return newRow;
+  });
+  if(dir==='right'){ grid=grid.map(row=>row.reverse()); }
+  if(dir==='up'){ grid=rotate(grid); grid=rotate(grid); grid=rotate(grid); }
+  if(dir==='down'){ grid=rotate(grid); }
+  if(moved) spawnTile();
+  drawGrid();
+  checkWin();
+  checkLose();
+  document.getElementById('score').textContent=score;
+}
+
+function rotate(mat){
+  return mat[0].map((val,i)=>mat.map(row=>row[i]));
+}
+
+function checkWin(){
+  for(let row of grid) for(let val of row) if(val===target) triggerWin();
+}
+
+function checkLose(){
+  if(grid.flat().some(v=>!v)) return;
+  for(let r=0;r<size;r++) for(let c=0;c<size;c++){
+    let val=grid[r][c];
+    if((r>0 && grid[r-1][c]===val)||(r<size-1 && grid[r+1][c]===val)||
+       (c>0 && grid[r][c-1]===val)||(c<size-1 && grid[r][c+1]===val)) return;
+  }
+  alert('No moves left – game over!'); startGame();
+}
+
+function triggerWin(){
+  overlay.style.display='flex';
+  zoomImage.src=images[target] || '';
+  setTimeout(()=>{ zoomImage.style.transform='scale(1)'; zoomImage.style.opacity='1'; },50);
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowUp') move('up');
+  if(e.key==='ArrowDown') move('down');
+  if(e.key==='ArrowLeft') move('left');
+  if(e.key==='ArrowRight') move('right');
+});
+
+// Mobile swipe
+let startX,startY;
+const gridEl=document.getElementById('grid');
+gridEl.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; startY=e.touches[0].clientY; });
+gridEl.addEventListener('touchend', e=>{
+  let dx=e.changedTouches[0].clientX-startX;
+  let dy=e.changedTouches[0].clientY-startY;
+  if(Math.abs(dx)>Math.abs(dy)){
+    if(dx>20) move('right'); else if(dx<-20) move('left');
+  } else {
+    if(dy>20) move('down'); else if(dy<-20) move('up');
+  }
+});
+</script>
+
+</body>
+</html>
+
