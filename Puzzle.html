@@ -66,19 +66,34 @@ document.getElementById('imgUpload').onchange=e=>{
 };
 
 function startGame(){
-  rows=+document.getElementById('rows').value;
-  cols=+document.getElementById('cols').value;
-  let scrambleMoves=+document.getElementById('scramble').value;
+  rows = +document.getElementById('rows').value;
+  cols = +document.getElementById('cols').value;
+  let scrambleMoves = +document.getElementById('scramble').value;
 
-  moves=0; document.getElementById('moves').textContent=moves;
-  overlay.style.display='none';
-  puzzle.style.gridTemplateRows=`repeat(${rows},1fr)`;
-  puzzle.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  moves = 0; 
+  document.getElementById('moves').textContent = moves;
+  overlay.style.display = 'none';
+  puzzle.style.gridTemplateRows = `repeat(${rows},1fr)`;
+  puzzle.style.gridTemplateColumns = `repeat(${cols},1fr)`;
 
-  tiles=[...Array(rows*cols).keys()];
-  empty=tiles.length-1;
+  if(!imgSrc){ 
+    setupTiles(scrambleMoves); 
+    return; 
+  }
 
-  for(let i=0;i<scrambleMoves;i++) randomMove();
+  // Load the image first to ensure proper slicing
+  const img = new Image();
+  img.onload = () => {
+    setupTiles(scrambleMoves);
+  };
+  img.src = imgSrc;
+}
+
+function setupTiles(scrambleMoves){
+  tiles = [...Array(rows * cols).keys()];
+  empty = tiles.length - 1;
+
+  for(let i = 0; i < scrambleMoves; i++) randomMove();
 
   draw();
 }
