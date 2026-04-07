@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sliding Puzzle – Variable Picture Shape</title>
+<title>Sliding Puzzle – Full Replacement</title>
 <style>
 body { margin:0; font-family:Arial; background:#0f172a; color:white; text-align:center; }
 h1 { margin:10px; font-size:22px; }
@@ -13,21 +13,15 @@ button { background:#38bdf8; color:black; cursor:pointer; }
 #puzzle {
   display:grid; margin:15px auto; gap:4px;
   width:90vw; max-width:500px;
-  grid-template-columns: repeat(var(--cols), 1fr);
-  grid-template-rows: repeat(var(--rows), 1fr);
-  touch-action: none;
+  touch-action:none;
   background:#020617;
   border-radius:12px;
   overflow:hidden;
 }
 .tile {
   width:100%; height:100%;
-  border-radius:8px; background-size: cover; background-position:center;
+  border-radius:8px; background-size:cover; background-position:center;
   position:relative; transition: all 0.25s ease; cursor:pointer;
-}
-.tile span {
-  position:absolute; top:50%; left:50%;
-  transform:translate(-50%,-50%); font-weight:bold; color:black; font-size:1.2em;
 }
 #overlay {
   position:fixed; top:0; left:0; width:100%; height:100%; background:black;
@@ -42,12 +36,14 @@ button { background:#38bdf8; color:black; cursor:pointer; }
 </head>
 <body>
 
-<h1>🧩 Sliding Puzzle – Variable Shape</h1>
+<h1>🧩 Sliding Puzzle – Full Replacement</h1>
 
 <div id="controls">
   <button onclick="startGame()">Start Game</button>
-  <input type="file" id="imgUpload">
+  Rows: <input type="number" id="rows" value="4" min="2" max="10">
+  Columns: <input type="number" id="cols" value="4" min="2" max="10">
   Scramble Moves: <input type="number" id="scramble" value="50" min="10" max="200">
+  <input type="file" id="imgUpload">
 </div>
 
 <p>Moves: <span id="moves">0</span></p>
@@ -60,7 +56,7 @@ button { background:#38bdf8; color:black; cursor:pointer; }
 </div>
 
 <script>
-let tiles=[], empty=0, moves=0, rows=0, cols=0, imgSrc='';
+let tiles=[], empty=0, moves=0, rows=4, cols=4, imgSrc='';
 const puzzle=document.getElementById('puzzle');
 const overlay=document.getElementById('overlay');
 const zoomImage=document.getElementById('zoomImage');
@@ -70,25 +66,21 @@ document.getElementById('imgUpload').onchange=e=>{
 };
 
 function startGame(){
+  rows=+document.getElementById('rows').value;
+  cols=+document.getElementById('cols').value;
+  let scrambleMoves=+document.getElementById('scramble').value;
+
   moves=0; document.getElementById('moves').textContent=moves;
   overlay.style.display='none';
+  puzzle.style.gridTemplateRows=`repeat(${rows},1fr)`;
+  puzzle.style.gridTemplateColumns=`repeat(${cols},1fr)`;
 
-  const img=new Image();
-  img.onload=()=>{
-    const aspect=img.width/img.height;
-    rows=4; cols=Math.round(rows*aspect);
-    puzzle.style.setProperty('--rows', rows);
-    puzzle.style.setProperty('--cols', cols);
+  tiles=[...Array(rows*cols).keys()];
+  empty=tiles.length-1;
 
-    tiles=[...Array(rows*cols).keys()];
-    empty=tiles.length-1;
+  for(let i=0;i<scrambleMoves;i++) randomMove();
 
-    let scrambleMoves=+document.getElementById('scramble').value;
-    for(let i=0;i<scrambleMoves;i++) randomMove();
-
-    draw();
-  };
-  img.src=imgSrc;
+  draw();
 }
 
 function restartGame(){ startGame(); }
@@ -98,14 +90,13 @@ function draw(){
   tiles.forEach((val,i)=>{
     if(val===tiles.length-1) return;
     const tile=document.createElement('div'); tile.className='tile';
-    const r=Math.floor(i/cols), c=i%cols;
     if(imgSrc){
-      const ir=Math.floor(val/cols), ic=val%cols;
+      const tileRow=Math.floor(val/cols), tileCol=val%cols;
       tile.style.backgroundImage=`url(${imgSrc})`;
       tile.style.backgroundSize=`${cols*100}% ${rows*100}%`;
-      tile.style.backgroundPosition=`${ic/(cols-1)*100}% ${ir/(rows-1)*100}%`;
+      tile.style.backgroundPosition=`${tileCol/(cols-1)*100}% ${tileRow/(rows-1)*100}%`;
     } else {
-      const span=document.createElement('span'); span.textContent=val+1; tile.appendChild(span);
+      tile.style.backgroundColor='#ddd';
     }
     tile.onclick=()=>move(i);
     puzzle.appendChild(tile);
