@@ -3,25 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Merge Puzzle 2048 – Mobile + Desktop Friendly</title>
+<title>Sliding Puzzle – Variable Picture Shape</title>
 <style>
-body {
-  margin:0; font-family: Arial; background:#0f172a; color:white; text-align:center;
-}
+body { margin:0; font-family:Arial; background:#0f172a; color:white; text-align:center; }
 h1 { margin:10px; font-size:22px; }
 #controls { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:10px; }
 input, button { font-size:18px; padding:10px; width:90%; max-width:300px; border-radius:8px; border:none; }
 button { background:#38bdf8; color:black; cursor:pointer; }
-#grid {
-  display: grid; margin:0 auto; gap:6px;
-  width:90vw; max-width:500px; aspect-ratio:1/1;
-  grid-template-columns: repeat(var(--size), 1fr); grid-auto-rows:1fr;
+#puzzle {
+  display:grid; margin:15px auto; gap:4px;
+  width:90vw; max-width:500px;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  touch-action: none;
+  background:#020617;
+  border-radius:12px;
+  overflow:hidden;
 }
-.cell {
-  width:100%; height:100%; display:flex; justify-content:center; align-items:center;
-  font-size:1.5em; font-weight:bold; border-radius:8px;
-  background:#ddd; color:black; background-size:cover; background-position:center;
-  transition: all 0.25s ease;
+.tile {
+  width:100%; height:100%;
+  border-radius:8px; background-size: cover; background-position:center;
+  position:relative; transition: all 0.25s ease; cursor:pointer;
+}
+.tile span {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%); font-weight:bold; color:black; font-size:1.2em;
 }
 #overlay {
   position:fixed; top:0; left:0; width:100%; height:100%; background:black;
@@ -29,154 +35,137 @@ button { background:#38bdf8; color:black; cursor:pointer; }
 }
 #zoomImage {
   max-width:90vw; max-height:60vh; object-fit:contain;
-  transform: scale(0.6); opacity:0; transition: all 0.6s ease;
+  transform:scale(0.6); opacity:0; transition: all 0.6s ease;
+  margin-bottom:10px;
 }
 </style>
 </head>
 <body>
 
-<h1>🎯 Merge Puzzle 2048</h1>
+<h1>🧩 Sliding Puzzle – Variable Shape</h1>
 
 <div id="controls">
-  <button onclick="startGame()">Start New Game</button>
-  Grid Size: <input type="number" id="size" value="4" min="3" max="6">
-  Target Tile Value: <input type="number" id="target" value="32" step="2">
-  <input type="file" id="imgUpload" multiple>
+  <button onclick="startGame()">Start Game</button>
+  <input type="file" id="imgUpload">
+  Scramble Moves: <input type="number" id="scramble" value="50" min="10" max="200">
 </div>
 
-<p>Score: <span id="score">0</span></p>
-<div id="grid"></div>
+<p>Moves: <span id="moves">0</span></p>
+<div id="puzzle"></div>
 
 <div id="overlay">
-  <h2>🏆 You Completed the Puzzle!</h2>
+  <h2>✨ Completed Puzzle! ✨</h2>
   <img id="zoomImage">
-  <br>
   <button onclick="restartGame()">Restart</button>
 </div>
 
 <script>
-let size=4, target=32, grid=[], score=0, moved=false, images={};
-const gridEl=document.getElementById('grid');
+let tiles=[], empty=0, moves=0, rows=0, cols=0, imgSrc='';
+const puzzle=document.getElementById('puzzle');
 const overlay=document.getElementById('overlay');
 const zoomImage=document.getElementById('zoomImage');
 
 document.getElementById('imgUpload').onchange=e=>{
-  const files=e.target.files;
-  for(let i=0;i<files.length;i++){
-    images[2**i]=URL.createObjectURL(files[i]);
-  }
+  imgSrc=URL.createObjectURL(e.target.files[0]);
 };
 
 function startGame(){
-  size=+document.getElementById('size').value;
-  target=+document.getElementById('target').value;
-  gridEl.style.setProperty('--size', size);
-  score=0; document.getElementById('score').textContent=score;
-  grid=Array.from({length:size}, ()=>Array(size).fill(null));
-  spawnTile(); spawnTile();
+  moves=0; document.getElementById('moves').textContent=moves;
   overlay.style.display='none';
-  drawGrid();
+
+  const img=new Image();
+  img.onload=()=>{
+    const aspect=img.width/img.height;
+    rows=4; cols=Math.round(rows*aspect);
+    puzzle.style.setProperty('--rows', rows);
+    puzzle.style.setProperty('--cols', cols);
+
+    tiles=[...Array(rows*cols).keys()];
+    empty=tiles.length-1;
+
+    let scrambleMoves=+document.getElementById('scramble').value;
+    for(let i=0;i<scrambleMoves;i++) randomMove();
+
+    draw();
+  };
+  img.src=imgSrc;
 }
 
 function restartGame(){ startGame(); }
 
-function drawGrid(){
-  gridEl.innerHTML='';
-  grid.forEach(row=>row.forEach(val=>{
-    const cell=document.createElement('div'); cell.className='cell';
-    if(val){
-      cell.textContent=images[val]? '': val;
-      if(images[val]) cell.style.backgroundImage=`url(${images[val]})`;
+function draw(){
+  puzzle.innerHTML='';
+  tiles.forEach((val,i)=>{
+    if(val===tiles.length-1) return;
+    const tile=document.createElement('div'); tile.className='tile';
+    const r=Math.floor(i/cols), c=i%cols;
+    if(imgSrc){
+      const ir=Math.floor(val/cols), ic=val%cols;
+      tile.style.backgroundImage=`url(${imgSrc})`;
+      tile.style.backgroundSize=`${cols*100}% ${rows*100}%`;
+      tile.style.backgroundPosition=`${ic/(cols-1)*100}% ${ir/(rows-1)*100}%`;
+    } else {
+      const span=document.createElement('span'); span.textContent=val+1; tile.appendChild(span);
     }
-    gridEl.appendChild(cell);
-  }));
-}
-
-function spawnTile(){
-  let empty=[];
-  grid.forEach((row,r)=>row.forEach((val,c)=>{if(!val) empty.push([r,c])}));
-  if(empty.length===0) return;
-  let [r,c]=empty[Math.floor(Math.random()*empty.length)];
-  grid[r][c]=2;
-}
-
-function slide(row){
-  let arr=row.filter(v=>v!==null);
-  for(let i=0;i<arr.length-1;i++){
-    if(arr[i]===arr[i+1]){
-      arr[i]*=2; score+=arr[i]; arr[i+1]=null;
-    }
-  }
-  return arr.filter(v=>v!==null).concat(Array(row.length-arr.filter(v=>v!==null).length).fill(null));
-}
-
-function move(dir){
-  moved=false;
-  let rotated=false;
-  if(dir==='up'){ grid=rotate(grid); rotated=true; }
-  if(dir==='down'){ grid=rotate(grid); grid=grid.map(row=>row.reverse()); rotated=true; }
-  if(dir==='right'){ grid=grid.map(row=>row.reverse()); }
-  grid=grid.map(row=>{
-    let newRow=slide(row);
-    if(newRow.toString()!==row.toString()) moved=true;
-    return newRow;
+    tile.onclick=()=>move(i);
+    puzzle.appendChild(tile);
   });
-  if(dir==='right'){ grid=grid.map(row=>row.reverse()); }
-  if(rotated&&dir==='up'){ grid=rotate(grid); grid=rotate(grid); grid=rotate(grid); }
-  if(rotated&&dir==='down'){ grid=rotate(grid); }
-  if(moved) spawnTile();
-  drawGrid();
-  document.getElementById('score').textContent=score;
-  checkWin();
-  checkLose();
 }
 
-function rotate(mat){ return mat[0].map((v,i)=>mat.map(row=>row[i])); }
-
-function checkWin(){
-  for(let row of grid) for(let val of row) if(val===target) triggerWin();
-}
-
-function checkLose(){
-  if(grid.flat().some(v=>!v)) return;
-  for(let r=0;r<size;r++) for(let c=0;c<size;c++){
-    let val=grid[r][c];
-    if((r>0 && grid[r-1][c]===val)||(r<size-1 && grid[r+1][c]===val)||
-       (c>0 && grid[r][c-1]===val)||(c<size-1 && grid[r][c+1]===val)) return;
+function move(i){
+  if(canMove(i)){
+    [tiles[i],tiles[empty]]=[tiles[empty],tiles[i]]; empty=i;
+    moves++; document.getElementById('moves').textContent=moves;
+    draw();
+    if(isSolved()) win();
   }
-  alert('No moves left – game over!'); startGame();
 }
 
-function triggerWin(){
+function canMove(i){
+  let r=Math.floor(i/cols), c=i%cols;
+  let er=Math.floor(empty/cols), ec=empty%cols;
+  return (r===er && Math.abs(c-ec)===1) || (c===ec && Math.abs(r-er)===1);
+}
+
+function randomMove(){
+  let opts=[], r=Math.floor(empty/cols), c=empty%cols;
+  if(r>0) opts.push(empty-cols);
+  if(r<rows-1) opts.push(empty+cols);
+  if(c>0) opts.push(empty-1);
+  if(c<cols-1) opts.push(empty+1);
+  let t=opts[Math.floor(Math.random()*opts.length)];
+  [tiles[t],tiles[empty]]=[tiles[empty],tiles[t]]; empty=t;
+}
+
+function isSolved(){ return tiles.every((v,i)=>v===i); }
+
+function win(){
   overlay.style.display='flex';
-  zoomImage.src=images[target]||'';
+  zoomImage.src=imgSrc;
   setTimeout(()=>{ zoomImage.style.transform='scale(1)'; zoomImage.style.opacity='1'; },50);
 }
 
-// Keyboard
-document.addEventListener('keydown', e=>{
-  if(e.key==='ArrowUp') move('up');
-  if(e.key==='ArrowDown') move('down');
-  if(e.key==='ArrowLeft') move('left');
-  if(e.key==='ArrowRight') move('right');
-});
-
-// Touch swipe
+// Swipe support
 let startX,startY;
-gridEl.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; startY=e.touches[0].clientY; });
-gridEl.addEventListener('touchend', e=>{
+puzzle.addEventListener("touchstart", e=>{ startX=e.touches[0].clientX; startY=e.touches[0].clientY; });
+puzzle.addEventListener("touchend", e=>{
   let dx=e.changedTouches[0].clientX-startX;
   let dy=e.changedTouches[0].clientY-startY;
   if(Math.abs(dx)>Math.abs(dy)){
-    if(dx>20) move('right'); else if(dx<-20) move('left');
+    if(dx>20) tryMove('right'); else if(dx<-20) tryMove('left');
   } else {
-    if(dy>20) move('down'); else if(dy<-20) move('up');
+    if(dy>20) tryMove('down'); else if(dy<-20) tryMove('up');
   }
 });
 
-startGame();
+function tryMove(dir){
+  let r=Math.floor(empty/cols), c=empty%cols;
+  if(dir==='up' && r<rows-1) move(empty+cols);
+  if(dir==='down' && r>0) move(empty-cols);
+  if(dir==='left' && c<cols-1) move(empty+1);
+  if(dir==='right' && c>0) move(empty-1);
+}
 </script>
 
 </body>
 </html>
-
