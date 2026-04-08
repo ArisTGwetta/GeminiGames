@@ -234,13 +234,16 @@ puzzle.addEventListener("touchend", e=>{
 });
 
 function tryMove(dir){
-  let r=Math.floor(empty/size), c=empty%size;
+  let r = Math.floor(empty/size);
+  let c = empty % size;
 
-  if(dir==='up' && r<size-1) move(empty+size);
-  if(dir==='down' && r>0) move(empty-size);
-  if(dir==='left' && c<size-1) move(empty+1);
-  if(dir==='right' && c>0) move(empty-1);
+  // Move tile INTO the empty space (correct direction)
+  if(dir === 'up' && r > 0) move(empty - size);
+  if(dir === 'down' && r < size - 1) move(empty + size);
+  if(dir === 'left' && c > 0) move(empty - 1);
+  if(dir === 'right' && c < size - 1) move(empty + 1);
 }
+  
 </script>
 
 </body>
