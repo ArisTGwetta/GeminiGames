@@ -2,173 +2,252 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sliding Puzzle – Full Replacement</title>
+<title>Puzzle Game v3</title>
+
 <style>
-body { margin:0; font-family:Arial; background:#0f172a; color:white; text-align:center; }
-h1 { margin:10px; font-size:22px; }
-#controls { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:10px; }
-input, button { font-size:18px; padding:10px; width:90%; max-width:300px; border-radius:8px; border:none; }
-button { background:#38bdf8; color:black; cursor:pointer; }
+body {
+  margin:0;
+  font-family: Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+
+h1 { margin:10px; }
+
+#controls {
+  margin:10px;
+}
+
 #puzzle {
-  display:grid; margin:15px auto; gap:4px;
-  width:90vw; max-width:500px;
+  position:relative;
+  margin:10px auto;
   touch-action:none;
-  background:#020617;
   border-radius:12px;
   overflow:hidden;
+  background:#020617;
 }
+
 .tile {
-  width:100%; height:100%;
-  border-radius:8px; background-size:cover; background-position:center;
-  position:relative; transition: all 0.25s ease; cursor:pointer;
+  position:absolute;
+  border-radius:8px;
+  transition: all 0.25s ease;
 }
+
 #overlay {
-  position:fixed; top:0; left:0; width:100%; height:100%; background:black;
-  display:none; justify-content:center; align-items:center; flex-direction:column;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:black;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
 }
+
 #zoomImage {
-  max-width:90vw; max-height:60vh; object-fit:contain;
-  transform:scale(0.6); opacity:0; transition: all 0.6s ease;
-  margin-bottom:10px;
+  max-width:90%;
+  max-height:70%;
+  transform: scale(0.5);
+  opacity:0;
+  transition: all 0.6s ease;
+}
+
+button {
+  padding:8px;
+  margin:5px;
+  font-size:16px;
 }
 </style>
+
 </head>
 <body>
 
-<h1>🧩 Sliding Puzzle – Full Replacement</h1>
+<h1>🧩 Puzzle Game</h1>
 
 <div id="controls">
-  <button onclick="startGame()">Start Game</button>
-  Rows: <input type="number" id="rows" value="4" min="2" max="10">
-  Columns: <input type="number" id="cols" value="4" min="2" max="10">
-  Scramble Moves: <input type="number" id="scramble" value="50" min="10" max="200">
-  <input type="file" id="imgUpload">
+<button onclick="setMode('story')">Story Mode</button>
+<button onclick="setMode('quick')">Quick Play</button>
+
+<br>
+
+Size:
+<input type="number" id="size" value="4" min="2" max="6">
+
+<input type="file" id="imgUpload">
+
+<br>
+
+<button onclick="startGame()">Start</button>
 </div>
 
 <p>Moves: <span id="moves">0</span></p>
+
 <div id="puzzle"></div>
 
 <div id="overlay">
-  <h2>✨ Completed Puzzle! ✨</h2>
+  <h2>✨ Completed ✨</h2>
   <img id="zoomImage">
-  <button onclick="restartGame()">Restart</button>
+  <br>
+  <button onclick="nextLevel()">Next</button>
 </div>
 
 <script>
-let tiles=[], empty=0, moves=0, rows=4, cols=4, imgSrc='';
-const puzzle=document.getElementById('puzzle');
-const overlay=document.getElementById('overlay');
-const zoomImage=document.getElementById('zoomImage');
+let size, tiles, empty, moves;
+let imageSrc = '';
+let mode = 'story';
+let level = 0;
 
-document.getElementById('imgUpload').onchange=e=>{
-  imgSrc=URL.createObjectURL(e.target.files[0]);
+const storyImages = [
+  "https://picsum.photos/400?1",
+  "https://picsum.photos/400?2",
+  "https://picsum.photos/400?3"
+];
+
+const puzzle = document.getElementById('puzzle');
+
+document.getElementById('imgUpload').onchange = e=>{
+  imageSrc = URL.createObjectURL(e.target.files[0]);
 };
 
-function startGame(){
-  rows = +document.getElementById('rows').value;
-  cols = +document.getElementById('cols').value;
-  let scrambleMoves = +document.getElementById('scramble').value;
-
-  moves = 0; 
-  document.getElementById('moves').textContent = moves;
-  overlay.style.display = 'none';
-  puzzle.style.gridTemplateRows = `repeat(${rows},1fr)`;
-  puzzle.style.gridTemplateColumns = `repeat(${cols},1fr)`;
-
-  if(!imgSrc){ 
-    setupTiles(scrambleMoves); 
-    return; 
-  }
-
-  // Load the image first to ensure proper slicing
-  const img = new Image();
-  img.onload = () => {
-    setupTiles(scrambleMoves);
-  };
-  img.src = imgSrc;
+function setMode(m){
+  mode = m;
 }
 
-function setupTiles(scrambleMoves){
-  tiles = [...Array(rows * cols).keys()];
-  empty = tiles.length - 1;
+function startGame(){
+  size = +document.getElementById('size').value;
 
-  for(let i = 0; i < scrambleMoves; i++) randomMove();
+  let tileSize = Math.min(window.innerWidth*0.18, 90);
+  puzzle.style.width = puzzle.style.height = (tileSize*size)+"px";
+
+  if(mode==='story'){
+    imageSrc = storyImages[level % storyImages.length];
+  }
+
+  tiles = [...Array(size*size).keys()];
+  empty = tiles.length-1;
+
+  for(let i=0;i<150;i++) randomMove();
+
+  moves=0;
+  document.getElementById('moves').textContent=0;
+  document.getElementById('overlay').style.display="none";
 
   draw();
 }
 
-function restartGame(){ startGame(); }
-
 function draw(){
   puzzle.innerHTML='';
+  let tileSize = puzzle.clientWidth / size;
+
   tiles.forEach((val,i)=>{
-    if(val===tiles.length-1) return;
-    const tile=document.createElement('div'); tile.className='tile';
-    if(imgSrc){
-      const tileRow=Math.floor(val/cols), tileCol=val%cols;
-      tile.style.backgroundImage=`url(${imgSrc})`;
-      tile.style.backgroundSize=`${cols*100}% ${rows*100}%`;
-      tile.style.backgroundPosition=`${tileCol/(cols-1)*100}% ${tileRow/(rows-1)*100}%`;
-    } else {
-      tile.style.backgroundColor='#ddd';
-    }
-    tile.onclick=()=>move(i);
-    puzzle.appendChild(tile);
+    if(val===size*size-1) return;
+
+    let d=document.createElement('div');
+    d.className='tile';
+
+    let r=Math.floor(i/size), c=i%size;
+    d.style.width=d.style.height=tileSize+"px";
+    d.style.left=c*tileSize+"px";
+    d.style.top=r*tileSize+"px";
+
+    let ir=Math.floor(val/size), ic=val%size;
+
+    d.style.backgroundImage=`url(${imageSrc})`;
+    d.style.backgroundSize=`${size*100}%`;
+    d.style.backgroundPosition=`${ic/(size-1)*100}% ${ir/(size-1)*100}%`;
+
+    d.onclick=()=>move(i);
+
+    puzzle.appendChild(d);
   });
 }
 
 function move(i){
   if(canMove(i)){
-    [tiles[i],tiles[empty]]=[tiles[empty],tiles[i]]; empty=i;
-    moves++; document.getElementById('moves').textContent=moves;
+    [tiles[i],tiles[empty]]=[tiles[empty],tiles[i]];
+    empty=i;
+    moves++;
+    document.getElementById('moves').textContent=moves;
     draw();
+
     if(isSolved()) win();
   }
 }
 
 function canMove(i){
-  let r=Math.floor(i/cols), c=i%cols;
-  let er=Math.floor(empty/cols), ec=empty%cols;
-  return (r===er && Math.abs(c-ec)===1) || (c===ec && Math.abs(r-er)===1);
+  let r=Math.floor(i/size), c=i%size;
+  let er=Math.floor(empty/size), ec=empty%size;
+  return (r===er&&Math.abs(c-ec)===1)||(c===ec&&Math.abs(r-er)===1);
 }
 
 function randomMove(){
-  let opts=[], r=Math.floor(empty/cols), c=empty%cols;
-  if(r>0) opts.push(empty-cols);
-  if(r<rows-1) opts.push(empty+cols);
+  let opts=[];
+  let r=Math.floor(empty/size), c=empty%size;
+
+  if(r>0) opts.push(empty-size);
+  if(r<size-1) opts.push(empty+size);
   if(c>0) opts.push(empty-1);
-  if(c<cols-1) opts.push(empty+1);
+  if(c<size-1) opts.push(empty+1);
+
   let t=opts[Math.floor(Math.random()*opts.length)];
-  [tiles[t],tiles[empty]]=[tiles[empty],tiles[t]]; empty=t;
+  [tiles[t],tiles[empty]]=[tiles[empty],tiles[t]];
+  empty=t;
 }
 
-function isSolved(){ return tiles.every((v,i)=>v===i); }
+function isSolved(){
+  return tiles.every((v,i)=>v===i);
+}
 
 function win(){
-  overlay.style.display='flex';
-  zoomImage.src=imgSrc;
-  setTimeout(()=>{ zoomImage.style.transform='scale(1)'; zoomImage.style.opacity='1'; },50);
+  let overlay=document.getElementById('overlay');
+  let img=document.getElementById('zoomImage');
+
+  img.src=imageSrc;
+
+  overlay.style.display="flex";
+
+  setTimeout(()=>{
+    img.style.transform="scale(1)";
+    img.style.opacity="1";
+  },50);
+}
+
+function nextLevel(){
+  document.getElementById('zoomImage').style.transform="scale(0.5)";
+  document.getElementById('zoomImage').style.opacity="0";
+
+  level++;
+  startGame();
 }
 
 // Swipe support
-let startX,startY;
-puzzle.addEventListener("touchstart", e=>{ startX=e.touches[0].clientX; startY=e.touches[0].clientY; });
+let startX, startY;
+
+puzzle.addEventListener("touchstart", e=>{
+  startX=e.touches[0].clientX;
+  startY=e.touches[0].clientY;
+});
+
 puzzle.addEventListener("touchend", e=>{
   let dx=e.changedTouches[0].clientX-startX;
   let dy=e.changedTouches[0].clientY-startY;
+
   if(Math.abs(dx)>Math.abs(dy)){
-    if(dx>20) tryMove('right'); else if(dx<-20) tryMove('left');
+    if(dx>20) tryMove('right');
+    else if(dx<-20) tryMove('left');
   } else {
-    if(dy>20) tryMove('down'); else if(dy<-20) tryMove('up');
+    if(dy>20) tryMove('down');
+    else if(dy<-20) tryMove('up');
   }
 });
 
 function tryMove(dir){
-  let r=Math.floor(empty/cols), c=empty%cols;
-  if(dir==='up' && r<rows-1) move(empty+cols);
-  if(dir==='down' && r>0) move(empty-cols);
-  if(dir==='left' && c<cols-1) move(empty+1);
+  let r=Math.floor(empty/size), c=empty%size;
+
+  if(dir==='up' && r<size-1) move(empty+size);
+  if(dir==='down' && r>0) move(empty-size);
+  if(dir==='left' && c<size-1) move(empty+1);
   if(dir==='right' && c>0) move(empty-1);
 }
 </script>
