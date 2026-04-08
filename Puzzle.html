@@ -2,36 +2,59 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Puzzle Game v3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sliding Puzzle V5</title>
 
 <style>
 body {
   margin:0;
-  font-family: Arial;
+  font-family:Arial;
   background:#0f172a;
   color:white;
   text-align:center;
 }
 
-h1 { margin:10px; }
+h1 { margin:10px; font-size:22px; }
 
 #controls {
-  margin:10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
 }
 
+input, button {
+  font-size:18px;
+  padding:10px;
+  width:90%;
+  max-width:300px;
+  border-radius:8px;
+  border:none;
+}
+
+button { background:#38bdf8; color:black; }
+
 #puzzle {
-  position:relative;
-  margin:10px auto;
-  touch-action:none;
+  display:grid;
+  gap:4px;
+  margin:15px auto;
+  width:90vw;
+  max-width:600px;
+  aspect-ratio:1/1;
+  background:#020617;
   border-radius:12px;
   overflow:hidden;
-  background:#020617;
+  touch-action:none;
 }
 
 .tile {
-  position:absolute;
+  width:100%;
+  height:100%;
+  background-size:cover;
+  background-position:center;
   border-radius:8px;
-  transition: all 0.25s ease;
+  transition:all 0.2s ease;
+  cursor:pointer;
 }
 
 #overlay {
@@ -46,39 +69,30 @@ h1 { margin:10px; }
 }
 
 #zoomImage {
-  max-width:90%;
-  max-height:70%;
-  transform: scale(0.5);
+  max-width:90vw;
+  max-height:60vh;
+  object-fit:contain;
+  transform:scale(0.6);
   opacity:0;
-  transition: all 0.6s ease;
-}
-
-button {
-  padding:8px;
-  margin:5px;
-  font-size:16px;
+  transition:all 0.6s ease;
 }
 </style>
-
 </head>
+
 <body>
 
-<h1>🧩 Puzzle Game</h1>
+<h1>🧩 Sliding Puzzle</h1>
 
 <div id="controls">
-<button onclick="setMode('story')">Story Mode</button>
-<button onclick="setMode('quick')">Quick Play</button>
+  <button onclick="startGame()">Start Game</button>
 
-<br>
+  Grid Size:
+  <input type="number" id="size" value="4" min="2" max="8">
 
-Size:
-<input type="number" id="size" value="4" min="2" max="6">
+  Scramble:
+  <input type="number" id="scramble" value="60" min="10" max="300">
 
-<input type="file" id="imgUpload">
-
-<br>
-
-<button onclick="startGame()">Start</button>
+  <input type="file" id="imgUpload">
 </div>
 
 <p>Moves: <span id="moves">0</span></p>
@@ -86,89 +100,72 @@ Size:
 <div id="puzzle"></div>
 
 <div id="overlay">
-  <h2>✨ Completed ✨</h2>
+  <h2>✨ Completed! ✨</h2>
   <img id="zoomImage">
-  <br>
-  <button onclick="nextLevel()">Next</button>
+  <button onclick="startGame()">Play Again</button>
 </div>
 
 <script>
 let size, tiles, empty, moves;
 let imageSrc = '';
-let mode = 'story';
-let level = 0;
-
-const storyImages = [
-  "https://picsum.photos/400?1",
-  "https://picsum.photos/400?2",
-  "https://picsum.photos/400?3"
-];
-
 const puzzle = document.getElementById('puzzle');
 
 document.getElementById('imgUpload').onchange = e=>{
   imageSrc = URL.createObjectURL(e.target.files[0]);
 };
 
-function setMode(m){
-  mode = m;
-}
-
 function startGame(){
   size = +document.getElementById('size').value;
+  let scramble = +document.getElementById('scramble').value;
 
-  let tileSize = Math.min(window.innerWidth*0.18, 90);
-  puzzle.style.width = puzzle.style.height = (tileSize*size)+"px";
-
-  if(mode==='story'){
-    imageSrc = storyImages[level % storyImages.length];
-  }
+  puzzle.style.gridTemplateColumns = `repeat(${size},1fr)`;
 
   tiles = [...Array(size*size).keys()];
-  empty = tiles.length-1;
+  empty = tiles.length - 1;
 
-  for(let i=0;i<150;i++) randomMove();
+  for(let i=0;i<scramble;i++) randomMove();
 
-  moves=0;
-  document.getElementById('moves').textContent=0;
-  document.getElementById('overlay').style.display="none";
+  moves = 0;
+  document.getElementById('moves').textContent = moves;
+
+  document.getElementById('overlay').style.display = "none";
 
   draw();
 }
 
 function draw(){
-  puzzle.innerHTML='';
-  let tileSize = puzzle.clientWidth / size;
+  puzzle.innerHTML = '';
 
   tiles.forEach((val,i)=>{
-    if(val===size*size-1) return;
+    if(val === size*size-1) return;
 
-    let d=document.createElement('div');
-    d.className='tile';
+    const tile = document.createElement('div');
+    tile.className = 'tile';
 
-    let r=Math.floor(i/size), c=i%size;
-    d.style.width=d.style.height=tileSize+"px";
-    d.style.left=c*tileSize+"px";
-    d.style.top=r*tileSize+"px";
+    if(imageSrc){
+      const r = Math.floor(val/size);
+      const c = val % size;
 
-    let ir=Math.floor(val/size), ic=val%size;
+      tile.style.backgroundImage = `url(${imageSrc})`;
+      tile.style.backgroundSize = `${size*100}% ${size*100}%`;
+      tile.style.backgroundPosition = `${c/(size-1)*100}% ${r/(size-1)*100}%`;
+    } else {
+      tile.style.backgroundColor = '#ddd';
+    }
 
-    d.style.backgroundImage=`url(${imageSrc})`;
-    d.style.backgroundSize=`${size*100}%`;
-    d.style.backgroundPosition=`${ic/(size-1)*100}% ${ir/(size-1)*100}%`;
-
-    d.onclick=()=>move(i);
-
-    puzzle.appendChild(d);
+    tile.onclick = ()=>move(i);
+    puzzle.appendChild(tile);
   });
 }
 
 function move(i){
   if(canMove(i)){
-    [tiles[i],tiles[empty]]=[tiles[empty],tiles[i]];
-    empty=i;
+    [tiles[i],tiles[empty]] = [tiles[empty],tiles[i]];
+    empty = i;
+
     moves++;
-    document.getElementById('moves').textContent=moves;
+    document.getElementById('moves').textContent = moves;
+
     draw();
 
     if(isSolved()) win();
@@ -178,7 +175,9 @@ function move(i){
 function canMove(i){
   let r=Math.floor(i/size), c=i%size;
   let er=Math.floor(empty/size), ec=empty%size;
-  return (r===er&&Math.abs(c-ec)===1)||(c===ec&&Math.abs(r-er)===1);
+
+  return (r===er && Math.abs(c-ec)===1) ||
+         (c===ec && Math.abs(r-er)===1);
 }
 
 function randomMove(){
@@ -190,9 +189,9 @@ function randomMove(){
   if(c>0) opts.push(empty-1);
   if(c<size-1) opts.push(empty+1);
 
-  let t=opts[Math.floor(Math.random()*opts.length)];
-  [tiles[t],tiles[empty]]=[tiles[empty],tiles[t]];
-  empty=t;
+  let t = opts[Math.floor(Math.random()*opts.length)];
+  [tiles[t],tiles[empty]] = [tiles[empty],tiles[t]];
+  empty = t;
 }
 
 function isSolved(){
@@ -200,29 +199,21 @@ function isSolved(){
 }
 
 function win(){
-  let overlay=document.getElementById('overlay');
-  let img=document.getElementById('zoomImage');
+  const overlay = document.getElementById('overlay');
+  const img = document.getElementById('zoomImage');
 
-  img.src=imageSrc;
+  img.src = imageSrc;
 
-  overlay.style.display="flex";
+  overlay.style.display = "flex";
 
   setTimeout(()=>{
-    img.style.transform="scale(1)";
-    img.style.opacity="1";
+    img.style.transform = "scale(1)";
+    img.style.opacity = "1";
   },50);
 }
 
-function nextLevel(){
-  document.getElementById('zoomImage').style.transform="scale(0.5)";
-  document.getElementById('zoomImage').style.opacity="0";
-
-  level++;
-  startGame();
-}
-
-// Swipe support
-let startX, startY;
+// Swipe
+let startX,startY;
 
 puzzle.addEventListener("touchstart", e=>{
   startX=e.touches[0].clientX;
