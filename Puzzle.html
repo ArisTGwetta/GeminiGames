@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Puzzle Game v3</title>
+<title>Puzzle Game v3a</title>
 
 <style>
 body {
@@ -14,10 +14,6 @@ body {
 }
 
 h1 { margin:10px; }
-
-#controls {
-  margin:10px;
-}
 
 #puzzle {
   position:relative;
@@ -34,6 +30,14 @@ h1 { margin:10px; }
   transition: all 0.25s ease;
 }
 
+#controls {
+  margin:10px auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+}
+
 #overlay {
   position:fixed;
   top:0; left:0;
@@ -46,11 +50,12 @@ h1 { margin:10px; }
 }
 
 #zoomImage {
-  max-width:90%;
-  max-height:70%;
-  transform: scale(0.5);
+  max-width:90vw;
+  max-height:70vh;
+  object-fit:contain;
+  transform: scale(0.8);
   opacity:0;
-  transition: all 0.6s ease;
+  transition: all 0.5s ease;
 }
 
 button {
@@ -65,25 +70,21 @@ button {
 
 <h1>🧩 Puzzle Game</h1>
 
-<div id="controls">
-<button onclick="setMode('story')">Story Mode</button>
-<button onclick="setMode('quick')">Quick Play</button>
-
-<br>
-
-Size:
-<input type="number" id="size" value="4" min="2" max="6">
-
-<input type="file" id="imgUpload">
-
-<br>
-
-<button onclick="startGame()">Start</button>
-</div>
-
 <p>Moves: <span id="moves">0</span></p>
 
 <div id="puzzle"></div>
+
+<div id="controls">
+  <button onclick="setMode('story')">Story Mode</button>
+  <button onclick="setMode('quick')">Quick Play</button>
+
+  Size:
+  <input type="number" id="size" value="4" min="2" max="6">
+
+  <input type="file" id="imgUpload">
+
+  <button onclick="startGame()">Start</button>
+</div>
 
 <div id="overlay">
   <h2>✨ Completed ✨</h2>
@@ -117,8 +118,9 @@ function setMode(m){
 function startGame(){
   size = +document.getElementById('size').value;
 
-  let tileSize = Math.min(window.innerWidth*0.18, 90);
-  puzzle.style.width = puzzle.style.height = (tileSize*size)+"px";
+  // Responsive size (prevents overflow)
+  let maxSize = Math.min(window.innerWidth * 0.9, 500);
+  puzzle.style.width = puzzle.style.height = maxSize + "px";
 
   if(mode==='story'){
     imageSrc = storyImages[level % storyImages.length];
@@ -154,7 +156,7 @@ function draw(){
     let ir=Math.floor(val/size), ic=val%size;
 
     d.style.backgroundImage=`url(${imageSrc})`;
-    d.style.backgroundSize=`${size*100}%`;
+    d.style.backgroundSize=`${size*100}% ${size*100}%`;
     d.style.backgroundPosition=`${ic/(size-1)*100}% ${ir/(size-1)*100}%`;
 
     d.onclick=()=>move(i);
@@ -203,19 +205,24 @@ function win(){
   let overlay=document.getElementById('overlay');
   let img=document.getElementById('zoomImage');
 
+  // Reset animation state
+  img.style.transform="scale(0.8)";
+  img.style.opacity="0";
+
   img.src=imageSrc;
 
   overlay.style.display="flex";
 
-  setTimeout(()=>{
+  requestAnimationFrame(()=>{
     img.style.transform="scale(1)";
     img.style.opacity="1";
-  },50);
+  });
 }
 
 function nextLevel(){
-  document.getElementById('zoomImage').style.transform="scale(0.5)";
-  document.getElementById('zoomImage').style.opacity="0";
+  let img = document.getElementById('zoomImage');
+  img.style.transform="scale(0.8)";
+  img.style.opacity="0";
 
   level++;
   startGame();
