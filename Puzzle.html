@@ -2,82 +2,80 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Puzzle Game v3</title>
+<title>Smooth Sliding Puzzle V2</title>
 
 <style>
 body {
-  margin:0;
+  background: #0f172a;
+  color: white;
   font-family: Arial;
-  background:#0f172a;
-  color:white;
-  text-align:center;
+  text-align: center;
 }
 
-h1 { margin:10px; }
-
 #controls {
-  margin:10px;
+  margin: 10px;
 }
 
 #puzzle {
-  position:relative;
-  margin:10px auto;
-  touch-action:none;
-  border-radius:12px;
-  overflow:hidden;
-  background:#020617;
+  position: relative;
+  margin: 20px auto;
+  width: 320px;
+  height: 320px;
+  background: #020617;
+  border-radius: 12px;
 }
 
 .tile {
-  position:absolute;
-  border-radius:8px;
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  cursor: pointer;
   transition: all 0.25s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.tile:active {
+  transform: scale(0.95);
 }
 
 #overlay {
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:black;
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background: rgba(0,0,0,0.85);
   display:none;
   justify-content:center;
   align-items:center;
   flex-direction:column;
 }
 
-#zoomImage {
-  max-width:90%;
-  max-height:70%;
-  transform: scale(0.5);
-  opacity:0;
-  transition: all 0.6s ease;
+#overlay img {
+  max-width:300px;
+  border:4px solid white;
 }
 
 button {
-  padding:8px;
-  margin:5px;
-  font-size:16px;
+  padding: 6px 10px;
+  margin: 5px;
 }
 </style>
 
 </head>
 <body>
 
-<h1>🧩 Puzzle Game</h1>
+<h1>✨ Smooth Puzzle</h1>
 
 <div id="controls">
-<button onclick="setMode('story')">Story Mode</button>
-<button onclick="setMode('quick')">Quick Play</button>
-
-<br>
-
-Size:
-<input type="number" id="size" value="4" min="2" max="6">
+Size: <input type="number" id="size" value="4" min="2" max="6">
+Scramble: <input type="number" id="scramble" value="100">
 
 <input type="file" id="imgUpload">
+<input type="file" id="rewardUpload">
 
 <br>
-
 <button onclick="startGame()">Start</button>
 </div>
 
@@ -86,111 +84,118 @@ Size:
 <div id="puzzle"></div>
 
 <div id="overlay">
-  <h2>✨ Completed ✨</h2>
-  <img id="zoomImage">
-  <br>
-  <button onclick="nextLevel()">Next</button>
+  <h1>🎉 Solved!</h1>
+  <div id="reward"></div>
+  <button onclick="startGame()">Restart</button>
 </div>
 
 <script>
 let size, tiles, empty, moves;
-let imageSrc = '';
-let mode = 'story';
-let level = 0;
-
-const storyImages = [
-  "https://picsum.photos/400?1",
-  "https://picsum.photos/400?2",
-  "https://picsum.photos/400?3"
-];
+let imageSrc = '', rewardSrc = '';
+let animating = false;
 
 const puzzle = document.getElementById('puzzle');
 
-document.getElementById('imgUpload').onchange = e=>{
+document.getElementById('imgUpload').onchange = e => {
   imageSrc = URL.createObjectURL(e.target.files[0]);
 };
 
-function setMode(m){
-  mode = m;
-}
+document.getElementById('rewardUpload').onchange = e => {
+  rewardSrc = URL.createObjectURL(e.target.files[0]);
+};
 
-function startGame(){
+function startGame() {
   size = +document.getElementById('size').value;
+  let scramble = +document.getElementById('scramble').value;
 
-  let tileSize = Math.min(window.innerWidth*0.18, 90);
-  puzzle.style.width = puzzle.style.height = (tileSize*size)+"px";
-
-  if(mode==='story'){
-    imageSrc = storyImages[level % storyImages.length];
-  }
+  puzzle.style.width = puzzle.style.height = (size * 80) + "px";
 
   tiles = [...Array(size*size).keys()];
-  empty = tiles.length-1;
+  empty = tiles.length - 1;
 
-  for(let i=0;i<150;i++) randomMove();
+  for(let i=0;i<scramble;i++) randomMove();
 
-  moves=0;
-  document.getElementById('moves').textContent=0;
-  document.getElementById('overlay').style.display="none";
+  moves = 0;
+  document.getElementById('moves').textContent = 0;
+  document.getElementById('overlay').style.display = "none";
 
   draw();
 }
 
-function draw(){
-  puzzle.innerHTML='';
-  let tileSize = puzzle.clientWidth / size;
+function draw() {
+  puzzle.innerHTML = '';
 
-  tiles.forEach((val,i)=>{
-    if(val===size*size-1) return;
+  tiles.forEach((val, i) => {
+    if(val === size*size-1) return;
 
-    let d=document.createElement('div');
-    d.className='tile';
+    let tile = document.createElement('div');
+    tile.className = 'tile';
 
-    let r=Math.floor(i/size), c=i%size;
-    d.style.width=d.style.height=tileSize+"px";
-    d.style.left=c*tileSize+"px";
-    d.style.top=r*tileSize+"px";
+    let row = Math.floor(i/size);
+    let col = i % size;
 
-    let ir=Math.floor(val/size), ic=val%size;
+    tile.style.left = col*80 + "px";
+    tile.style.top = row*80 + "px";
 
-    d.style.backgroundImage=`url(${imageSrc})`;
-    d.style.backgroundSize=`${size*100}%`;
-    d.style.backgroundPosition=`${ic/(size-1)*100}% ${ir/(size-1)*100}%`;
+    if(imageSrc){
+      let r = Math.floor(val/size);
+      let c = val % size;
 
-    d.onclick=()=>move(i);
+      tile.style.backgroundImage = `url(${imageSrc})`;
+      tile.style.backgroundSize = `${size*100}%`;
+      tile.style.backgroundPosition = `${c/(size-1)*100}% ${r/(size-1)*100}%`;
+    } else {
+      tile.textContent = val+1;
+      tile.style.background = "#334155";
+      tile.style.display="flex";
+      tile.style.alignItems="center";
+      tile.style.justifyContent="center";
+    }
 
-    puzzle.appendChild(d);
+    tile.onclick = () => move(i);
+    puzzle.appendChild(tile);
   });
 }
 
 function move(i){
+  if(animating) return;
+
   if(canMove(i)){
-    [tiles[i],tiles[empty]]=[tiles[empty],tiles[i]];
-    empty=i;
+    animating = true;
+
+    let target = empty;
+
+    [tiles[i], tiles[empty]] = [tiles[empty], tiles[i]];
+    empty = i;
     moves++;
-    document.getElementById('moves').textContent=moves;
+    document.getElementById('moves').textContent = moves;
+
     draw();
 
-    if(isSolved()) win();
+    setTimeout(()=>{
+      animating = false;
+      if(isSolved()) win();
+    }, 250);
   }
 }
 
 function canMove(i){
   let r=Math.floor(i/size), c=i%size;
   let er=Math.floor(empty/size), ec=empty%size;
-  return (r===er&&Math.abs(c-ec)===1)||(c===ec&&Math.abs(r-er)===1);
+
+  return (r===er && Math.abs(c-ec)===1)||(c===ec && Math.abs(r-er)===1);
 }
 
 function randomMove(){
-  let opts=[];
+  let options=[];
   let r=Math.floor(empty/size), c=empty%size;
 
-  if(r>0) opts.push(empty-size);
-  if(r<size-1) opts.push(empty+size);
-  if(c>0) opts.push(empty-1);
-  if(c<size-1) opts.push(empty+1);
+  if(r>0) options.push(empty-size);
+  if(r<size-1) options.push(empty+size);
+  if(c>0) options.push(empty-1);
+  if(c<size-1) options.push(empty+1);
 
-  let t=opts[Math.floor(Math.random()*opts.length)];
+  let t = options[Math.floor(Math.random()*options.length)];
   [tiles[t],tiles[empty]]=[tiles[empty],tiles[t]];
   empty=t;
 }
@@ -200,56 +205,26 @@ function isSolved(){
 }
 
 function win(){
-  let overlay=document.getElementById('overlay');
-  let img=document.getElementById('zoomImage');
+  let overlay = document.getElementById('overlay');
+  let reward = document.getElementById('reward');
+  reward.innerHTML = '';
 
-  img.src=imageSrc;
+  let img = document.createElement('img');
+  img.src = rewardSrc || imageSrc;
+  reward.appendChild(img);
 
-  overlay.style.display="flex";
-
-  setTimeout(()=>{
-    img.style.transform="scale(1)";
-    img.style.opacity="1";
-  },50);
+  overlay.style.display = "flex";
 }
 
-function nextLevel(){
-  document.getElementById('zoomImage').style.transform="scale(0.5)";
-  document.getElementById('zoomImage').style.opacity="0";
-
-  level++;
-  startGame();
-}
-
-// Swipe support
-let startX, startY;
-
-puzzle.addEventListener("touchstart", e=>{
-  startX=e.touches[0].clientX;
-  startY=e.touches[0].clientY;
-});
-
-puzzle.addEventListener("touchend", e=>{
-  let dx=e.changedTouches[0].clientX-startX;
-  let dy=e.changedTouches[0].clientY-startY;
-
-  if(Math.abs(dx)>Math.abs(dy)){
-    if(dx>20) tryMove('right');
-    else if(dx<-20) tryMove('left');
-  } else {
-    if(dy>20) tryMove('down');
-    else if(dy<-20) tryMove('up');
-  }
-});
-
-function tryMove(dir){
+// Keyboard support
+document.addEventListener("keydown", e => {
   let r=Math.floor(empty/size), c=empty%size;
 
-  if(dir==='up' && r<size-1) move(empty+size);
-  if(dir==='down' && r>0) move(empty-size);
-  if(dir==='left' && c<size-1) move(empty+1);
-  if(dir==='right' && c>0) move(empty-1);
-}
+  if(e.key==="ArrowUp" && r<size-1) move(empty+size);
+  if(e.key==="ArrowDown" && r>0) move(empty-size);
+  if(e.key==="ArrowLeft" && c<size-1) move(empty+1);
+  if(e.key==="ArrowRight" && c>0) move(empty-1);
+});
 </script>
 
 </body>
