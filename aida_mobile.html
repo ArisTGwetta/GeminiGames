@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Aida Mobile - Shielded</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f0f4f8; padding: 20px; }
+        #chat-box { background: white; border-radius: 8px; padding: 15px; height: 300px; overflow-y: scroll; border: 1px solid #ccc; }
+        input { width: 80%; padding: 10px; margin-top: 10px; }
+        button { padding: 10px; background: #4a90e2; color: white; border: none; border-radius: 4px; }
+    </style>
+</head>
+
+<body>
+    <h2>Aida Mobile</h2>
+    <div id="chat-box"></div>
+    
+    <input type="password" id="api-key-input" placeholder="Paste OpenAI Key Here">
+    <input type="text" id="user-input" placeholder="Talk to Aida...">
+    <button id="send-btn" py-click="send_message">Send</button>
+
+    <script type="py">
+        from pyscript import display, document
+        import json
+        from pyodide.http import pyfetch
+
+        async def send_message(event):
+            user_input = document.getElementById("user-input")
+            key_input = document.getElementById("api-key-input")
+            
+            user_text = user_input.value
+            api_key = key_input.value # Grabs the key you pasted
+            
+            if not user_text or not api_key:
+                display("Aida: Please enter both a message and your API key.", target="chat-box")
+                return
+            
+            display(f"User: {user_text}", target="chat-box", append=True)
+            user_input.value = ""
+
+            try:
+                response = await pyfetch(
+                    url="https://api.openai.com/v1/chat/completions",
+                    method="POST",
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {api_key}"
+                    },
+                    body=json.dumps({
+                        "model": "gpt-3.5-turbo",
+                        "messages": [{"role": "user", "content": user_text}]
+                    })
+                )
+                data = await response.json()
+                reply = data['choices'][0]['message']['content']
+                display(f"Aida: {reply}", target="chat-box", append=True)
+            except Exception as e:
+                display(f"Aida: Connection Error. Check your key.", target="chat-box")
+    </script>
+</body>
+
+</html>
