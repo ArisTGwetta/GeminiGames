@@ -1,63 +1,94 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Aida Mobile - Shielded</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f4f8; padding: 20px; }
-        #chat-box { background: white; border-radius: 8px; padding: 15px; height: 300px; overflow-y: scroll; border: 1px solid #ccc; }
-        input { width: 80%; padding: 10px; margin-top: 10px; }
-        button { padding: 10px; background: #4a90e2; color: white; border: none; border-radius: 4px; }
+        body { margin: 0; background: #fdf6e3; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
+        
+        /* 1/3 Face - Always on top */
+        #aida-header {
+            height: 30vh; background: #e2d7bf; flex-shrink: 0;
+            display: flex; justify-content: center; align-items: center;
+            border-bottom: 3px solid #d3af37; z-index: 10;
+        }
+        #aida-portrait { height: 90%; border-radius: 12px; border: 2px solid white; }
+
+        /* Chat Area */
+        #chat-container {
+            flex-grow: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 12px;
+            scroll-behavior: smooth; /* Makes the anchor scroll feel natural */
+        }
+        .bubble {
+            max-width: 85%; padding: 12px 16px; border-radius: 20px;
+            font-size: 16px; line-height: 1.5; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .user { align-self: flex-end; background: #859900; color: white; border-bottom-right-radius: 4px; }
+        .aida { align-self: flex-start; background: #fff; color: #333; border: 1px solid #d3af37; border-bottom-left-radius: 4px; }
+
+        /* Input Area */
+        .input-bar { padding: 15px; background: white; display: flex; gap: 10px; border-top: 2px solid #e2d7bf; }
+        input { flex-grow: 1; padding: 12px; border-radius: 25px; border: 1px solid #ccc; outline: none; font-size: 16px; }
+        button { background: #d3af37; border: none; border-radius: 50%; width: 45px; height: 45px; color: white; font-size: 20px; }
     </style>
 </head>
-
 <body>
-    <h2>Aida Mobile</h2>
-    <div id="chat-box"></div>
-    
-    <input type="password" id="api-key-input" placeholder="Paste OpenAI Key Here">
-    <input type="text" id="user-input" placeholder="Talk to Aida...">
-    <button id="send-btn" py-click="send_message">Send</button>
+
+    <div id="aida-header">
+        <img id="aida-portrait" src="emotions/normal.png">
+    </div>
+
+    <div id="chat-container">
+        <div class="bubble aida">Aida: System ready. Waiting for input...</div>
+    </div>
+
+    <div class="input-bar">
+        <input type="text" id="user-input" placeholder="Message Aida...">
+        <button id="send-btn" py-click="send_message">➤</button>
+    </div>
 
     <script type="py">
         from pyscript import display, document
-        import json
-        from pyodide.http import pyfetch
+        import asyncio
 
         async def send_message(event):
             user_input = document.getElementById("user-input")
-            key_input = document.getElementById("api-key-input")
-            
-            user_text = user_input.value
-            api_key = key_input.value # Grabs the key you pasted
-            
-            if not user_text or not api_key:
-                display("Aida: Please enter both a message and your API key.", target="chat-box")
-                return
-            
-            display(f"User: {user_text}", target="chat-box", append=True)
-            user_input.value = ""
+            chat_box = document.getElementById("chat-container")
+            text = user_input.value
+            if not text: return
 
-            try:
-                response = await pyfetch(
-                    url="https://api.openai.com/v1/chat/completions",
-                    method="POST",
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {api_key}"
-                    },
-                    body=json.dumps({
-                        "model": "gpt-3.5-turbo",
-                        "messages": [{"role": "user", "content": user_text}]
-                    })
-                )
-                data = await response.json()
-                reply = data['choices'][0]['message']['content']
-                display(f"Aida: {reply}", target="chat-box", append=True)
-            except Exception as e:
-                display(f"Aida: Connection Error. Check your key.", target="chat-box")
+            # 1. Add User Bubble
+            u_bubble = document.createElement("div")
+            u_bubble.className = "bubble user"
+            u_bubble.innerText = text
+            chat_box.appendChild(u_bubble)
+            user_input.value = ""
+            
+            # Snap to user message
+            u_bubble.scrollIntoView()
+
+            # 2. Simulate Aida "Burst" (The Anchor Test)
+            await asyncio.sleep(0.5)
+            
+            # This is the FIRST message of the burst
+            anchor_bubble = document.createElement("div")
+            anchor_bubble.className = "bubble aida"
+            anchor_bubble.innerText = "Oh my god..."
+            chat_box.appendChild(anchor_bubble)
+            
+            # THE TRICK: We scroll to the START of the reply
+            anchor_bubble.scrollIntoView()
+
+            # Add subsequent messages in the burst
+            for msg in ["Did you hear that?", "Peter is dating Mary!", "What do you think?"]:
+                await asyncio.sleep(0.8)
+                b = document.createElement("div")
+                b.className = "bubble aida"
+                b.innerText = msg
+                chat_box.appendChild(b)
+                # Notice we DON'T scroll here. We stay anchored to the first one.
     </script>
 </body>
-
 </html>
