@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Puzzle Game v3a</title>
+<title>Puzzle Game v4</title>
 
 <style>
 body {
@@ -28,6 +28,7 @@ h1 { margin:10px; }
   position:absolute;
   border-radius:8px;
   transition: all 0.25s ease;
+  background-repeat:no-repeat;
 }
 
 #controls {
@@ -51,7 +52,7 @@ h1 { margin:10px; }
 
 #zoomImage {
   max-width:90vw;
-  max-height:70vh;
+  max-height:80vh;
   object-fit:contain;
   transform: scale(0.8);
   opacity:0;
@@ -75,11 +76,8 @@ button {
 <div id="puzzle"></div>
 
 <div id="controls">
-  <button onclick="setMode('story')">Story Mode</button>
-  <button onclick="setMode('quick')">Quick Play</button>
-
   Size:
-  <input type="number" id="size" value="4" min="2" max="6">
+  <input type="number" id="size" value="4" min="2" max="8">
 
   <input type="file" id="imgUpload">
 
@@ -90,41 +88,72 @@ button {
   <h2>✨ Completed ✨</h2>
   <img id="zoomImage">
   <br>
-  <button onclick="nextLevel()">Next</button>
+  <button onclick="startGame()">Play Again</button>
 </div>
 
 <script>
 let size, tiles, empty, moves;
 let imageSrc = '';
-let mode = 'story';
-let level = 0;
+let loadedImg = null;
 
-const storyImages = [
-  "https://picsum.photos/400?1",
-  "https://picsum.photos/400?2",
-  "https://picsum.photos/400?3"
-];
+const fallbackImage = "https://picsum.photos/800";
 
 const puzzle = document.getElementById('puzzle');
 
-document.getElementById('imgUpload').onchange = e=>{
-  imageSrc = URL.createObjectURL(e.target.files[0]);
+document.getElementById('imgUpload').onchange = async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const blobURL = URL.createObjectURL(file);
+
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.src = blobURL;
+
+  try {
+    await img.decode();
+    imageSrc = blobURL;
+    loadedImg = img;
+    console.log("Uploaded image decoded.");
+  } catch (err) {
+    console.error("Image decode failed", err);
+    alert("Image could not be loaded.");
+  }
 };
 
-function setMode(m){
-  mode = m;
+async function ensureImageLoaded() {
+  if (imageSrc && loadedImg) return;
+
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.src = fallbackImage;
+
+  await img.decode();
+  imageSrc = fallbackImage;
+  loadedImg = img;
 }
 
-function startGame(){
+async function startGame(){
+  await ensureImageLoaded();
+
   size = +document.getElementById('size').value;
 
-  // Responsive size (prevents overflow)
-  let maxSize = Math.min(window.innerWidth * 0.9, 500);
-  puzzle.style.width = puzzle.style.height = maxSize + "px";
+  // Responsive puzzle size based on image aspect ratio
+  const maxW = window.innerWidth * 0.9;
+  const maxH = window.innerHeight * 0.5;
 
-  if(mode==='story'){
-    imageSrc = storyImages[level % storyImages.length];
+  const imgRatio = loadedImg.width / loadedImg.height;
+
+  let puzzleW = maxW;
+  let puzzleH = puzzleW / imgRatio;
+
+  if (puzzleH > maxH) {
+    puzzleH = maxH;
+    puzzleW = puzzleH * imgRatio;
   }
+
+  puzzle.style.width = puzzleW + "px";
+  puzzle.style.height = puzzleH + "px";
 
   tiles = [...Array(size*size).keys()];
   empty = tiles.length-1;
@@ -140,7 +169,8 @@ function startGame(){
 
 function draw(){
   puzzle.innerHTML='';
-  let tileSize = puzzle.clientWidth / size;
+  let tileW = puzzle.clientWidth / size;
+  let tileH = puzzle.clientHeight / size;
 
   tiles.forEach((val,i)=>{
     if(val===size*size-1) return;
@@ -149,15 +179,16 @@ function draw(){
     d.className='tile';
 
     let r=Math.floor(i/size), c=i%size;
-    d.style.width=d.style.height=tileSize+"px";
-    d.style.left=c*tileSize+"px";
-    d.style.top=r*tileSize+"px";
+    d.style.width=tileW+"px";
+    d.style.height=tileH+"px";
+    d.style.left=c*tileW+"px";
+    d.style.top=r*tileH+"px";
 
     let ir=Math.floor(val/size), ic=val%size;
 
     d.style.backgroundImage=`url(${imageSrc})`;
-    d.style.backgroundSize=`${size*100}% ${size*100}%`;
-    d.style.backgroundPosition=`${ic/(size-1)*100}% ${ir/(size-1)*100}%`;
+    d.style.backgroundSize=`${puzzle.clientWidth}px ${puzzle.clientHeight}px`;
+    d.style.backgroundPosition=`-${ic*tileW}px -${ir*tileH}px`;
 
     d.onclick=()=>move(i);
 
@@ -205,59 +236,11 @@ function win(){
   let overlay=document.getElementById('overlay');
   let img=document.getElementById('zoomImage');
 
-  // Reset animation state
   img.style.transform="scale(0.8)";
   img.style.opacity="0";
 
   img.src=imageSrc;
 
-  overlay.style.display="flex";
+  overlay.style.display="
 
-  requestAnimationFrame(()=>{
-    img.style.transform="scale(1)";
-    img.style.opacity="1";
-  });
-}
-
-function nextLevel(){
-  let img = document.getElementById('zoomImage');
-  img.style.transform="scale(0.8)";
-  img.style.opacity="0";
-
-  level++;
-  startGame();
-}
-
-// Swipe support
-let startX, startY;
-
-puzzle.addEventListener("touchstart", e=>{
-  startX=e.touches[0].clientX;
-  startY=e.touches[0].clientY;
-});
-
-puzzle.addEventListener("touchend", e=>{
-  let dx=e.changedTouches[0].clientX-startX;
-  let dy=e.changedTouches[0].clientY-startY;
-
-  if(Math.abs(dx)>Math.abs(dy)){
-    if(dx>20) tryMove('right');
-    else if(dx<-20) tryMove('left');
-  } else {
-    if(dy>20) tryMove('down');
-    else if(dy<-20) tryMove('up');
-  }
-});
-
-function tryMove(dir){
-  let r=Math.floor(empty/size), c=empty%size;
-
-  if(dir==='up' && r<size-1) move(empty+size);
-  if(dir==='down' && r>0) move(empty-size);
-  if(dir==='left' && c<size-1) move(empty+1);
-  if(dir==='right' && c>0) move(empty-1);
-}
-</script>
-
-</body>
 </html>
