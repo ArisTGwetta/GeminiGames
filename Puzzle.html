@@ -100,7 +100,7 @@ const fallbackImage = "https://picsum.photos/800";
 
 const puzzle = document.getElementById('puzzle');
 
-document.getElementById('imgUpload').onchange = async e => {
+document.getElementById('imgUpload').onchange = e => {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -110,15 +110,16 @@ document.getElementById('imgUpload').onchange = async e => {
   img.crossOrigin = "anonymous";
   img.src = blobURL;
 
-  try {
-    await img.decode();
+  img.onload = () => {
+    console.log("Image loaded successfully.");
     imageSrc = blobURL;
     loadedImg = img;
-    console.log("Uploaded image decoded.");
-  } catch (err) {
-    console.error("Image decode failed", err);
+  };
+
+  img.onerror = () => {
+    console.error("Image failed to load.");
     alert("Image could not be loaded.");
-  }
+  };
 };
 
 async function ensureImageLoaded() {
@@ -128,9 +129,10 @@ async function ensureImageLoaded() {
   img.crossOrigin = "anonymous";
   img.src = fallbackImage;
 
-  await img.decode();
-  imageSrc = fallbackImage;
-  loadedImg = img;
+  img.onload = () => {
+    imageSrc = fallbackImage;
+    loadedImg = img;
+  };
 }
 
 async function startGame(){
@@ -138,7 +140,6 @@ async function startGame(){
 
   size = +document.getElementById('size').value;
 
-  // Responsive puzzle size based on image aspect ratio
   const maxW = window.innerWidth * 0.9;
   const maxH = window.innerHeight * 0.5;
 
@@ -241,6 +242,16 @@ function win(){
 
   img.src=imageSrc;
 
-  overlay.style.display="
+  overlay.style.display="flex";
+
+  requestAnimationFrame(()=>{
+    img.style.transform="scale(1)";
+    img.style.opacity="1";
+  });
+}
+</script>
+
+</body>
+</html>
 
 </html>
