@@ -1,0 +1,301 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Memory Game v1</title>
+
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+
+h1 { margin:10px; }
+
+#game {
+  display:grid;
+  gap:6px;
+  margin:10px auto;
+  touch-action:none;
+}
+
+.card {
+  position:relative;
+  width:100%;
+  padding-top:100%; /* square */
+  border-radius:10px;
+  background:#1e293b;
+  overflow:hidden;
+  transform-style:preserve-3d;
+  transition:transform 0.4s ease;
+}
+
+.card.flipped {
+  transform:rotateY(180deg);
+}
+
+.cardInner {
+  position:absolute;
+  top:0; left:0;
+  width:100%; height:100%;
+  transform-style:preserve-3d;
+}
+
+.cardFront, .cardBack {
+  position:absolute;
+  width:100%; height:100%;
+  backface-visibility:hidden;
+  border-radius:10px;
+}
+
+.cardBack {
+  background:#334155;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:24px;
+}
+
+.cardFront {
+  transform:rotateY(180deg);
+  background-size:cover;
+  background-position:center;
+}
+
+#controls {
+  margin:10px auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+}
+
+#overlay {
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:black;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+
+#rewardImage {
+  max-width:90vw;
+  max-height:80vh;
+  object-fit:contain;
+  transform:scale(0.8);
+  opacity:0;
+  transition:all 0.5s ease;
+}
+
+button {
+  padding:8px;
+  margin:5px;
+  font-size:16px;
+}
+</style>
+
+</head>
+<body>
+
+<h1>🃏 Memory Game</h1>
+
+<p>Moves: <span id="moves">0</span></p>
+
+<div id="controls">
+  Pairs:
+  <input type="number" id="pairCount" value="6" min="2" max="18">
+
+  <input type="file" id="imgUpload" multiple>
+
+  <button onclick="startGame()">Start</button>
+</div>
+
+<div id="game"></div>
+
+<div id="overlay">
+  <h2>✨ You Win! ✨</h2>
+  <img id="rewardImage">
+  <br>
+  <button onclick="startGame()">Play Again</button>
+</div>
+
+<script>
+let deck = [];
+let firstCard = null;
+let secondCard = null;
+let lockBoard = false;
+let moves = 0;
+
+let uploadedImages = [];
+let rewardImageSrc = "";
+
+document.getElementById('imgUpload').onchange = e => {
+  uploadedImages = [];
+  const files = [...e.target.files];
+
+  files.forEach(file => {
+    const blobURL = URL.createObjectURL(file);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = blobURL;
+
+    img.onload = () => {
+      uploadedImages.push(blobURL);
+    };
+
+    img.onerror = () => {
+      alert("One of the images failed to load.");
+    };
+  });
+};
+
+function bestGridForPairs(pairs) {
+  const total = pairs * 2;
+  let cols = Math.ceil(Math.sqrt(total));
+  let rows = Math.ceil(total / cols);
+  return { rows, cols };
+}
+
+function buildDeck(pairs) {
+  let images = [];
+
+  if (uploadedImages.length >= pairs) {
+    images = uploadedImages.slice(0, pairs);
+    rewardImageSrc = uploadedImages[0];
+  } else {
+    for (let i=0; i<pairs; i++) {
+      images.push(`https://picsum.photos/200?random=${i}`);
+    }
+    rewardImageSrc = images[0];
+  }
+
+  deck = [];
+
+  images.forEach((src, idx) => {
+    deck.push({ id: idx, src });
+    deck.push({ id: idx, src });
+  });
+
+  deck.sort(() => Math.random() - 0.5);
+}
+
+function startGame(){
+  const pairs = +document.getElementById('pairCount').value;
+
+  buildDeck(pairs);
+
+  const grid = bestGridForPairs(pairs);
+
+  const game = document.getElementById('game');
+  game.innerHTML = "";
+  game.style.gridTemplateColumns = `repeat(${grid.cols}, 1fr)`;
+
+  moves = 0;
+  document.getElementById('moves').textContent = moves;
+
+  document.getElementById('overlay').style.display = "none";
+
+  deck.forEach((cardData, index) => {
+    const card = document.createElement('div');
+    card.className = "card";
+    card.dataset.id = cardData.id;
+    card.dataset.src = cardData.src;
+
+    const inner = document.createElement('div');
+    inner.className = "cardInner";
+
+    const front = document.createElement('div');
+    front.className = "cardFront";
+    front.style.backgroundImage = `url(${cardData.src})`;
+
+    const back = document.createElement('div');
+    back.className = "cardBack";
+    back.textContent = "❓";
+
+    inner.appendChild(front);
+    inner.appendChild(back);
+    card.appendChild(inner);
+
+    card.onclick = () => flipCard(card);
+
+    game.appendChild(card);
+  });
+}
+
+function flipCard(card){
+  if (lockBoard || card.classList.contains("flipped")) return;
+
+  card.classList.add("flipped");
+
+  if (!firstCard) {
+    firstCard = card;
+    return;
+  }
+
+  secondCard = card;
+  lockBoard = true;
+
+  moves++;
+  document.getElementById('moves').textContent = moves;
+
+  checkMatch();
+}
+
+function checkMatch(){
+  const match = firstCard.dataset.id === secondCard.dataset.id;
+
+  if (match) {
+    firstCard.onclick = null;
+    secondCard.onclick = null;
+    resetTurn();
+    checkWin();
+  } else {
+    setTimeout(() => {
+      firstCard.classList.remove("flipped");
+      secondCard.classList.remove("flipped");
+      resetTurn();
+    }, 800);
+  }
+}
+
+function resetTurn(){
+  firstCard = null;
+  secondCard = null;
+  lockBoard = false;
+}
+
+function checkWin(){
+  const allFlipped = [...document.querySelectorAll('.card')]
+    .every(card => card.classList.contains("flipped"));
+
+  if (allFlipped) {
+    showWin();
+  }
+}
+
+function showWin(){
+  const overlay = document.getElementById('overlay');
+  const img = document.getElementById('rewardImage');
+
+  img.style.transform = "scale(0.8)";
+  img.style.opacity = "0";
+
+  img.src = rewardImageSrc;
+
+  overlay.style.display = "flex";
+
+  requestAnimationFrame(() => {
+    img.style.transform = "scale(1)";
+    img.style.opacity = "1";
+  });
+}
+</script>
+
+</body>
+</html>
