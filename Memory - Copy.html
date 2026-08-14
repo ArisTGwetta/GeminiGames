@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Memory Game</title>
-
+<title>Garden & Danganronpa Memory</title>
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -69,18 +68,14 @@
         justify-content: center;
     }
 
-    .card-front {
-        transform: rotateY(180deg);
-    }
-
-    .card-back {
-        transform: rotateY(0deg);
-    }
-
-    .card-front img, .card-back img {
+    .card-back img, .card-back img {
         width: 100%;
         height: 100%;
         object-fit: contain;
+    }
+
+    .card-front {
+        transform: rotateY(180deg);
     }
 
     #uploadSection {
@@ -114,7 +109,6 @@
 <div id="controls">
     <select id="themeSelect">
         <option value="garden">Garden (Default)</option>
-        <option value="mom">Mom’s Deck</option>
         <option value="danganronpa">Danganronpa Deck</option>
     </select>
 
@@ -148,11 +142,6 @@
 
 <script>
 /* ============================================================
-   RAW GITHUB URL BASE
-============================================================ */
-const RAW = "https://raw.githubusercontent.com/ArisTGwetta/GeminiGames/main/MemoryAssets/";
-
-/* ============================================================
    DECK ARRAYS
 ============================================================ */
 let deckGarden = [];
@@ -164,62 +153,55 @@ let uploadedImages = [];
 let currentTheme = "garden";
 let currentDifficulty = 10;
 let cardBackImage = "";
-let rewardImage = "";
 
+// Memory game state
 let flippedCards = [];
 let lockBoard = false;
-let matchesFound = 0;
+
 
 /* ============================================================
-   BUILD DECKS
+   BUILD DECKS FROM LOCAL PNG ASSETS
 ============================================================ */
 function buildGardenDeck() {
     deckGarden = [
-        RAW+"Default01.png",
-        RAW+"Default02.png",
-        RAW+"Default03.png",
-        RAW+"Default04.png",
-        RAW+"Default05.png",
-        RAW+"Default06.png",
-        RAW+"Default07.png",
-        RAW+"Default08.png",
-        RAW+"Default09.png",
-        RAW+"Default10.png"
+        "memoryassets/Default01.png",
+        "memoryassets/Default02.png",
+        "memoryassets/Default03.png",
+        "memoryassets/Default04.png",
+        "memoryassets/Default05.png",
+        "memoryassets/Default06.png",
+        "memoryassets/Default07.png",
+        "memoryassets/Default08.png",
+        "memoryassets/Default09.png",
+        "memoryassets/Default10.png"
     ];
 }
 
 function buildMomDeck() {
-    deckMom = [...deckGarden]; // re-use defaults for now
+    deckMom = [...deckGarden];
 }
 
 function applyGardenBack() {
-    cardBackImage = RAW+"Defaultcardback.jpg";
-    rewardImage = RAW+"Defaultreward.jpg";
-}
-
-function applyMomBack() {
-    cardBackImage = RAW+"Defaultcardback.jpg";
-    rewardImage = RAW+"Defaultreward.jpg";
+    cardBackImage = "memoryassets/Defaultcardback.jpg";
 }
 
 function buildDanganronpaDeck() {
     deckDanganronpa = [
-        RAW+"DG01.png",
-        RAW+"DG02.png",
-        RAW+"DG03.png",
-        RAW+"DG04.png",
-        RAW+"DG05.png",
-        RAW+"DG06.png",
-        RAW+"DG07.png",
-        RAW+"DG08.png",
-        RAW+"DG09.png",
-        RAW+"DG10.png"
+        "memoryassets/DG01.png",
+        "memoryassets/DG02.png",
+        "memoryassets/DG03.png",
+        "memoryassets/DG04.png",
+        "memoryassets/DG05.png",
+        "memoryassets/DG06.png",
+        "memoryassets/DG07.png",
+        "memoryassets/DG08.png",
+        "memoryassets/DG09.png",
+        "memoryassets/DG10.png"
     ];
 }
 
 function applyDanganronpaBack() {
-    cardBackImage = RAW+"DGcardback.jpg";
-    rewardImage = RAW+"DGreward.jpg";
+    cardBackImage = "memoryassets/DGcardback.jpg";
 }
 
 /* ============================================================
@@ -257,10 +239,6 @@ function buildDeckForTheme(theme) {
     if (theme === "garden") {
         applyGardenBack();
         return deckGarden;
-    }
-    if (theme === "mom") {
-        applyMomBack();
-        return deckMom;
     }
     if (theme === "danganronpa") {
         applyDanganronpaBack();
@@ -306,80 +284,6 @@ function renderBoard(fullDeck) {
     });
 }
 
-/* ============================================================
-   MATCHING LOGIC
-============================================================ */
-function handleCardFlip(card, src) {
-    if (lockBoard) return;
-    if (card.classList.contains("matched")) return;
-
-    card.classList.add("flipped");
-    flippedCards.push({ card, src });
-
-    if (flippedCards.length === 2) {
-        lockBoard = true;
-
-        const [first, second] = flippedCards;
-
-        if (first.src === second.src) {
-            first.card.classList.add("matched");
-            second.card.classList.add("matched");
-
-            matchesFound++;
-            flippedCards = [];
-            lockBoard = false;
-
-            checkForWin();
-        } else {
-            setTimeout(() => {
-                first.card.classList.remove("flipped");
-                second.card.classList.remove("flipped");
-                flippedCards = [];
-                lockBoard = false;
-            }, 900);
-        }
-    }
-}
-
-/* ============================================================
-   WIN DETECTION + CELEBRATION
-============================================================ */
-function checkForWin() {
-    if (matchesFound >= currentDifficulty) {
-        celebrateWin();
-    }
-}
-
-function celebrateWin() {
-    const reward = document.createElement("div");
-    reward.style.position = "fixed";
-    reward.style.top = "50%";
-    reward.style.left = "50%";
-    reward.style.transform = "translate(-50%, -50%)";
-    reward.style.padding = "20px";
-    reward.style.background = "white";
-    reward.style.borderRadius = "12px";
-    reward.style.boxShadow = "0 0 20px rgba(0,0,0,0.3)";
-    reward.style.zIndex = "9999";
-    reward.style.textAlign = "center";
-
-    reward.innerHTML = `
-        <h2>You Win!</h2>
-        <img src="${rewardImage}" style="width:200px; border-radius:12px;">
-        <br><br>
-        <button style="
-            padding:10px 20px;
-            border-radius:8px;
-            border:none;
-            background:#66bb6a;
-            color:white;
-            font-size:1rem;
-            cursor:pointer;
-        " onclick="this.parentElement.remove()">Close</button>
-    `;
-
-    document.body.appendChild(reward);
-}
 
 /* ============================================================
    NEW GAME
@@ -389,10 +293,6 @@ function startNewGame() {
 
     currentTheme = document.getElementById("themeSelect").value;
     currentDifficulty = parseInt(document.getElementById("difficultySelect").value);
-
-    matchesFound = 0;
-    flippedCards = [];
-    lockBoard = false;
 
     const deck = buildDeckForTheme(currentTheme);
     const trimmedDeck = deck.slice(0, currentDifficulty);
@@ -418,8 +318,7 @@ function updatePreviewPanel() {
         { name: "Mom Deck", items: deckMom },
         { name: "Danganronpa Deck", items: deckDanganronpa },
         { name: "Personal Deck B", items: deckPersonalB },
-        { name: "Card Back", items: [cardBackImage] },
-        { name: "Reward Image", items: [rewardImage] }
+        { name: "Card Back", items: [cardBackImage] }
     ];
 
     decks.forEach(deck => {
@@ -433,6 +332,37 @@ function updatePreviewPanel() {
         preview.appendChild(section);
     });
 }
+
+function handleCardFlip(card, src) {
+    if (lockBoard) return;
+    if (card.classList.contains("matched")) return;
+
+    card.classList.add("flipped");
+    flippedCards.push({ card, src });
+
+    if (flippedCards.length === 2) {
+        lockBoard = true;
+
+        const [first, second] = flippedCards;
+
+        if (first.src === second.src) {
+            // MATCH
+            first.card.classList.add("matched");
+            second.card.classList.add("matched");
+            flippedCards = [];
+            lockBoard = false;
+        } else {
+            // NO MATCH → flip back after delay
+            setTimeout(() => {
+                first.card.classList.remove("flipped");
+                second.card.classList.remove("flipped");
+                flippedCards = [];
+                lockBoard = false;
+            }, 900);
+        }
+    }
+}
+
 
 /* ============================================================
    INITIAL LOAD
