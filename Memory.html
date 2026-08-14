@@ -1,301 +1,995 @@
+<!-- START OF CHUNK 1 OF 10 -->
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Memory Game v1</title>
+    <!-- SECTION: META + TITLE -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garden & Danganronpa Memory Game</title>
 
-<style>
-body {
-  margin:0;
-  font-family: Arial;
-  background:#0f172a;
-  color:white;
-  text-align:center;
-}
+    <!-- SECTION: BASE STYLES -->
+    <style>
+        /* CSS: Page Layout */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f4f7f2;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
 
-h1 { margin:10px; }
+        /* CSS: Header Bar */
+        header {
+            padding: 12px 20px;
+            background: #e3f0dc;
+            border-bottom: 1px solid #c7ddc0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
-#game {
-  display:grid;
-  gap:6px;
-  margin:10px auto;
-  touch-action:none;
-}
+        header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
 
-.card {
-  position:relative;
-  width:100%;
-  padding-top:100%; /* square */
-  border-radius:10px;
-  background:#1e293b;
-  overflow:hidden;
-  transform-style:preserve-3d;
-  transition:transform 0.4s ease;
-}
+        /* CSS: Controls Container */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
 
-.card.flipped {
-  transform:rotateY(180deg);
-}
+        .controls select,
+        .controls button {
+            border-radius: 999px;
+            border: 1px solid #c7ddc0;
+            padding: 6px 12px;
+            background: #ffffff;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
 
-.cardInner {
-  position:absolute;
-  top:0; left:0;
-  width:100%; height:100%;
-  transform-style:preserve-3d;
-}
+        .controls button:hover,
+        .controls select:hover {
+            background: #f0f6eb;
+        }
 
-.cardFront, .cardBack {
-  position:absolute;
-  width:100%; height:100%;
-  backface-visibility:hidden;
-  border-radius:10px;
-}
+        /* CSS: Main Game Area */
+        main {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-.cardBack {
-  background:#334155;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  font-size:24px;
-}
+        /* CSS: Board Container */
+        .board {
+            display: grid;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 16px;
+        }
 
-.cardFront {
-  transform:rotateY(180deg);
-  background-size:cover;
-  background-position:center;
-}
+        /* CSS: Card Base */
+        .card {
+            width: 110px;
+            height: 140px;
+            border-radius: 18px; /* Rounded corners everywhere */
+            background: #ffffff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            position: relative;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
 
-#controls {
-  margin:10px auto;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:6px;
-}
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
 
-#overlay {
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:black;
-  display:none;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-}
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
 
-#rewardImage {
-  max-width:90vw;
-  max-height:80vh;
-  object-fit:contain;
-  transform:scale(0.8);
-  opacity:0;
-  transition:all 0.5s ease;
-}
+        /* CSS: Card Faces */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 18px;
+            backface-visibility: hidden;
+            overflow: hidden; /* Mixed-size handling: keep images inside rounded corners */
+        }
 
-button {
-  padding:8px;
-  margin:5px;
-  font-size:16px;
-}
-</style>
+        .card-front {
+            transform: rotateY(180deg);
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
+        .card-back {
+            background: #f5faf3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* CSS: Images inside cards (mixed-size handling) */
+        .card-front img,
+        .card-back img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* CSS: Status Bar */
+        .status-bar {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        /* CSS: Upload Area */
+        .upload-panel {
+            margin-top: 18px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            background: #eaf3e4;
+            border: 1px solid #c7ddc0;
+            font-size: 0.85rem;
+        }
+
+        .upload-panel input[type="file"] {
+            margin-top: 6px;
+        }
+
+        .upload-panel button {
+            margin-top: 6px;
+            border-radius: 999px;
+            border: 1px solid #c7ddc0;
+            padding: 4px 10px;
+            background: #ffffff;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .upload-panel button:hover {
+            background: #f0f6eb;
+        }
+    </style>
 </head>
+<!-- END OF CHUNK 1 OF 10 -->
+
+<!-- START OF CHUNK 2 OF 10 -->
+<!-- SECTION: SVG ICONS + CARD BACKS -->
 <body>
 
-<h1>🃏 Memory Game</h1>
+<!-- ========================================= -->
+<!-- IMAGE SET: DEFAULT GARDEN DECK (SVG ICONS) -->
+<!-- ========================================= -->
 
-<p>Moves: <span id="moves">0</span></p>
+<!-- IMAGE: Garden Flower 1 -->
+<svg id="flower1" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+    <symbol id="icon-flower1" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="18" fill="#ffb7d1"/>
+        <circle cx="50" cy="20" r="14" fill="#ffd1e0"/>
+        <circle cx="80" cy="50" r="14" fill="#ffd1e0"/>
+        <circle cx="50" cy="80" r="14" fill="#ffd1e0"/>
+        <circle cx="20" cy="50" r="14" fill="#ffd1e0"/>
+    </symbol>
+</svg>
 
-<div id="controls">
-  Pairs:
-  <input type="number" id="pairCount" value="6" min="2" max="18">
+<!-- IMAGE: Garden Flower 2 -->
+<svg id="flower2" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+    <symbol id="icon-flower2" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="20" fill="#ffe8a3"/>
+        <rect x="45" y="10" width="10" height="20" rx="5" fill="#fff3c9"/>
+        <rect x="70" y="45" width="20" height="10" rx="5" fill="#fff3c9"/>
+        <rect x="45" y="70" width="10" height="20" rx="5" fill="#fff3c9"/>
+        <rect x="10" y="45" width="20" height="10" rx="5" fill="#fff3c9"/>
+    </symbol>
+</svg>
 
-  <input type="file" id="imgUpload" multiple>
+<!-- IMAGE: Garden Flower 3 -->
+<svg id="flower3" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+    <symbol id="icon-flower3" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="16" fill="#c8e6a0"/>
+        <ellipse cx="50" cy="25" rx="12" ry="18" fill="#e3f4c8"/>
+        <ellipse cx="75" cy="50" rx="18" ry="12" fill="#e3f4c8"/>
+        <ellipse cx="50" cy="75" rx="12" ry="18" fill="#e3f4c8"/>
+        <ellipse cx="25" cy="50" rx="18" ry="12" fill="#e3f4c8"/>
+    </symbol>
+</svg>
 
-  <button onclick="startGame()">Start</button>
+<!-- ========================================= -->
+<!-- MOM DECK: GARDEN-DAY HAT ICON -->
+<!-- ========================================= -->
+
+<svg id="garden-hat" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+    <symbol id="icon-garden-hat" viewBox="0 0 120 120">
+        <ellipse cx="60" cy="70" rx="45" ry="22" fill="#f7d9a8"/>
+        <ellipse cx="60" cy="55" rx="28" ry="18" fill="#fbe7c5"/>
+        <circle cx="78" cy="52" r="8" fill="#ffb7d1"/>
+        <circle cx="82" cy="48" r="5" fill="#ffd1e0"/>
+    </symbol>
+</svg>
+
+<!-- ========================================= -->
+<!-- PERSONAL DECK A: MONOKUMA CARD BACK -->
+<!-- ========================================= -->
+
+<!-- CARD BACK: Monokuma -->
+<!-- (Your uploaded image will be inserted later in Chunk 5) -->
+<div id="monokuma-back" style="display:none;">
+    <!-- Placeholder reference; actual <img> inserted in JS -->
 </div>
 
-<div id="game"></div>
+<!-- ========================================= -->
+<!-- PERSONAL DECK A: DANGANRONPA FRONTS -->
+<!-- ========================================= -->
+<!-- These will be wired to your uploaded images in Chunk 5 -->
 
-<div id="overlay">
-  <h2>✨ You Win! ✨</h2>
-  <img id="rewardImage">
-  <br>
-  <button onclick="startGame()">Play Again</button>
+<div id="deck-danganronpa" style="display:none;">
+    <!-- IMAGE: Swimmer -->
+    <!-- IMAGE: Glasses + Suit -->
+    <!-- IMAGE: Rasta Hair -->
+    <!-- IMAGE: Nerdy Girl (Scissors) -->
+    <!-- IMAGE: Protagonist -->
+    <!-- IMAGE: Evil Girl -->
+    <!-- IMAGE: Detective Girl -->
+    <!-- IMAGE: Chihiro -->
+    <!-- IMAGE: Blue-Hair Girl -->
+    <!-- IMAGE: Biker Guy -->
 </div>
+
+<!-- END OF CHUNK 2 OF 10 -->
+
+<!-- START OF CHUNK 3 OF 10 -->
+
+<!-- ========================================= -->
+<!-- SECTION: HEADER + GAME CONTROLS -->
+<!-- ========================================= -->
+
+<header>
+    <h1>Memory Game</h1>
+
+    <div class="controls">
+        <!-- THEME SELECTOR -->
+        <select id="themeSelector">
+            <option value="garden">Garden (Default)</option>
+            <option value="mom">Garden-Day Hat</option>
+            <option value="danganronpa">Danganronpa Deck</option>
+        </select>
+
+        <!-- DIFFICULTY SELECTOR -->
+        <select id="difficultySelector">
+            <option value="4">Easy (4 pairs)</option>
+            <option value="6">Medium (6 pairs)</option>
+            <option value="8">Hard (8 pairs)</option>
+            <option value="10" selected>Full Deck (10 pairs)</option>
+        </select>
+
+        <!-- NEW GAME BUTTON -->
+        <button id="newGameBtn">New Game</button>
+    </div>
+</header>
+
+<!-- ========================================= -->
+<!-- SECTION: MAIN GAME AREA -->
+<!-- ========================================= -->
+
+<main>
+    <!-- GAME BOARD -->
+    <div id="board" class="board"></div>
+
+    <!-- STATUS BAR -->
+    <div id="statusBar" class="status-bar">
+        Select a theme and difficulty to begin.
+    </div>
+
+    <!-- ========================================= -->
+    <!-- SECTION: UPLOAD PANEL (Personal Deck B) -->
+    <!-- ========================================= -->
+
+    <div class="upload-panel">
+        <strong>Personal Deck B</strong><br>
+        Upload up to 10 images for your custom deck.
+
+        <input type="file" id="uploadInput" accept="image/*" multiple>
+
+        <button id="resetUploadsBtn">Reset Uploads</button>
+
+        <div id="uploadCount">Uploaded: 0 / 10</div>
+    </div>
+</main>
+
+<!-- END OF CHUNK 3 OF 10 -->
+
+<!-- START OF CHUNK 4 OF 10 -->
+
+<!-- ========================================= -->
+<!-- SECTION: JAVASCRIPT FOUNDATION -->
+<!-- ========================================= -->
 
 <script>
-let deck = [];
-let firstCard = null;
-let secondCard = null;
-let lockBoard = false;
-let moves = 0;
+/* -------------------------------------------------
+   GLOBAL STATE
+---------------------------------------------------*/
+let currentTheme = "garden";
+let currentDifficulty = 10;
 
-let uploadedImages = [];
-let rewardImageSrc = "";
+let deckGarden = [];          // SVG icons (Chunk 2)
+let deckMom = [];             // Garden-day hat (Chunk 2)
+let deckDanganronpa = [];     // Your 10 fronts (Chunk 5)
+let deckPersonalB = [];       // Uploaded images (Chunk 6)
 
-document.getElementById('imgUpload').onchange = e => {
-  uploadedImages = [];
-  const files = [...e.target.files];
+let cardBackImage = null;     // Monokuma (Chunk 5)
 
-  files.forEach(file => {
-    const blobURL = URL.createObjectURL(file);
+let boardEl = null;
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = blobURL;
+/* -------------------------------------------------
+   INITIAL SETUP (runs after DOM loads)
+---------------------------------------------------*/
+document.addEventListener("DOMContentLoaded", () => {
+    boardEl = document.getElementById("board");
 
-    img.onload = () => {
-      uploadedImages.push(blobURL);
-    };
+    // Theme selector
+    document.getElementById("themeSelector").addEventListener("change", (e) => {
+        currentTheme = e.target.value;
+    });
 
-    img.onerror = () => {
-      alert("One of the images failed to load.");
-    };
-  });
-};
+    // Difficulty selector
+    document.getElementById("difficultySelector").addEventListener("change", (e) => {
+        currentDifficulty = parseInt(e.target.value, 10);
+    });
 
-function bestGridForPairs(pairs) {
-  const total = pairs * 2;
-  let cols = Math.ceil(Math.sqrt(total));
-  let rows = Math.ceil(total / cols);
-  return { rows, cols };
+    // New Game button
+    document.getElementById("newGameBtn").addEventListener("click", () => {
+        startNewGame();
+    });
+
+    // Upload reset button (Personal Deck B)
+    document.getElementById("resetUploadsBtn").addEventListener("click", () => {
+        resetUploads();
+    });
+});
+
+
+/* -------------------------------------------------
+   NEW GAME: Clears board + builds new deck
+---------------------------------------------------*/
+function startNewGame() {
+    clearBoard();
+
+    console.log("Theme:", currentTheme);
+
+    const deck = buildDeckForTheme(currentTheme);
+    console.log("Deck returned by buildDeckForTheme:", deck);
+
+    const trimmedDeck = deck.slice(0, currentDifficulty);
+    console.log("Trimmed deck:", trimmedDeck);
+
+    const fullDeck = duplicateAndShuffle(trimmedDeck);
+    console.log("Full deck:", fullDeck);
+
+    renderBoard(fullDeck);
+
+    document.getElementById("statusBar").textContent =
+        `Theme: ${currentTheme}, Pairs: ${currentDifficulty}`;
 }
 
-function buildDeck(pairs) {
-  let images = [];
+/* -------------------------------------------------
+   CLEAR BOARD
+---------------------------------------------------*/
+function clearBoard() {
+    boardEl.innerHTML = "";
+}
 
-  if (uploadedImages.length >= pairs) {
-    images = uploadedImages.slice(0, pairs);
-    rewardImageSrc = uploadedImages[0];
-  } else {
-    for (let i=0; i<pairs; i++) {
-      images.push(`https://picsum.photos/200?random=${i}`);
+/* -------------------------------------------------
+   BUILD DECK FOR THE CURRENT THEME
+---------------------------------------------------*/
+function buildDeckForTheme(theme) {
+    if (theme === "garden") return deckGarden;
+    if (theme === "mom") return deckMom;
+    if (theme === "danganronpa") return deckDanganronpa;
+    return deckPersonalB;
+}
+
+/* -------------------------------------------------
+   DUPLICATE + SHUFFLE (Fisher–Yates)
+---------------------------------------------------*/
+function duplicateAndShuffle(arr) {
+    const doubled = [...arr, ...arr];
+    for (let i = doubled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [doubled[i], doubled[j]] = [doubled[j], doubled[i]];
     }
-    rewardImageSrc = images[0];
-  }
-
-  deck = [];
-
-  images.forEach((src, idx) => {
-    deck.push({ id: idx, src });
-    deck.push({ id: idx, src });
-  });
-
-  deck.sort(() => Math.random() - 0.5);
+    return doubled;
 }
 
-function startGame(){
-  const pairs = +document.getElementById('pairCount').value;
+/* -------------------------------------------------
+   RENDER BOARD (cards appear here)
+---------------------------------------------------*/
+function renderBoard(deck) {
+    // Grid auto-fit based on difficulty
+    const columns = Math.ceil(Math.sqrt(deck.length));
+    boardEl.style.gridTemplateColumns = `repeat(${columns}, 110px)`;
 
-  buildDeck(pairs);
+    deck.forEach((item, index) => {
+        const card = createCard(item, index);
+        boardEl.appendChild(card);
+    });
+}
 
-  const grid = bestGridForPairs(pairs);
-
-  const game = document.getElementById('game');
-  game.innerHTML = "";
-  game.style.gridTemplateColumns = `repeat(${grid.cols}, 1fr)`;
-
-  moves = 0;
-  document.getElementById('moves').textContent = moves;
-
-  document.getElementById('overlay').style.display = "none";
-
-  deck.forEach((cardData, index) => {
-    const card = document.createElement('div');
+/* -------------------------------------------------
+   CREATE CARD (front + back)
+---------------------------------------------------*/
+function createCard(item, index) {
+    const card = document.createElement("div");
     card.className = "card";
-    card.dataset.id = cardData.id;
-    card.dataset.src = cardData.src;
+    card.dataset.index = index;
 
-    const inner = document.createElement('div');
-    inner.className = "cardInner";
+    const inner = document.createElement("div");
+    inner.className = "card-inner";
 
-    const front = document.createElement('div');
-    front.className = "cardFront";
-    front.style.backgroundImage = `url(${cardData.src})`;
+    const front = document.createElement("div");
+    front.className = "card-face card-front";
 
-    const back = document.createElement('div');
-    back.className = "cardBack";
-    back.textContent = "❓";
+    const back = document.createElement("div");
+    back.className = "card-face card-back";
+
+    // FRONT IMAGE
+    const imgFront = document.createElement("img");
+    imgFront.src = item;
+    front.appendChild(imgFront);
+
+    // BACK IMAGE (Monokuma or garden icon)
+    const imgBack = document.createElement("img");
+    imgBack.src = cardBackImage || ""; // Filled in Chunk 5
+    back.appendChild(imgBack);
 
     inner.appendChild(front);
     inner.appendChild(back);
     card.appendChild(inner);
 
-    card.onclick = () => flipCard(card);
+    // Flip handler (actual logic in Chunk 7)
+    card.addEventListener("click", () => {
+        handleCardFlip(card);
+    });
 
-    game.appendChild(card);
-  });
+    return card;
 }
 
-function flipCard(card){
-  if (lockBoard || card.classList.contains("flipped")) return;
-
-  card.classList.add("flipped");
-
-  if (!firstCard) {
-    firstCard = card;
-    return;
-  }
-
-  secondCard = card;
-  lockBoard = true;
-
-  moves++;
-  document.getElementById('moves').textContent = moves;
-
-  checkMatch();
+/* -------------------------------------------------
+   PLACEHOLDER: Flip Logic (real logic in Chunk 7)
+---------------------------------------------------*/
+function handleCardFlip(card) {
+    // Placeholder — real matching logic arrives in Chunk 7
+    card.classList.toggle("flipped");
 }
 
-function checkMatch(){
-  const match = firstCard.dataset.id === secondCard.dataset.id;
 
-  if (match) {
-    firstCard.onclick = null;
-    secondCard.onclick = null;
-    resetTurn();
-    checkWin();
-  } else {
-    setTimeout(() => {
-      firstCard.classList.remove("flipped");
-      secondCard.classList.remove("flipped");
-      resetTurn();
-    }, 800);
-  }
+/* ============================================================
+   PATCH: Correct deck assignments + add preview panel
+   ============================================================ */
+
+/* 1 — Mom deck should use the garden flowers */
+function buildMomDeck() {
+    deckMom = [...deckGarden];   // same flowers
 }
 
-function resetTurn(){
-  firstCard = null;
-  secondCard = null;
-  lockBoard = false;
+/* 2 — Hat should be the card back */
+function applyHatBack() {
+    cardBackImage = svgSymbolToDataURL("icon-garden-hat");
 }
 
-function checkWin(){
-  const allFlipped = [...document.querySelectorAll('.card')]
-    .every(card => card.classList.contains("flipped"));
+/* 3 — Assign uploaded images to Danganronpa deck */
+function assignDanganronpaImages() {
+    if (uploadedImages.length >= 10) {
+        danganronpaFronts.swimmer        = uploadedImages[0];
+        danganronpaFronts.glassesSuit    = uploadedImages[1];
+        danganronpaFronts.rastaHair      = uploadedImages[2];
+        danganronpaFronts.nerdyGirl      = uploadedImages[3];
+        danganronpaFronts.protagonist    = uploadedImages[4];
+        danganronpaFronts.evilGirl       = uploadedImages[5];
+        danganronpaFronts.detectiveGirl  = uploadedImages[6];
+        danganronpaFronts.chihiro        = uploadedImages[7];
+        danganronpaFronts.blueHairGirl   = uploadedImages[8];
+        danganronpaFronts.bikerGuy       = uploadedImages[9];
 
-  if (allFlipped) {
-    showWin();
-  }
+        loadDanganronpaDeck();
+    }
 }
 
-function showWin(){
-  const overlay = document.getElementById('overlay');
-  const img = document.getElementById('rewardImage');
+/* 4 — Call this after uploads */
+document.getElementById("uploadInput").addEventListener("change", () => {
+    assignDanganronpaImages();
+});
 
-  img.style.transform = "scale(0.8)";
-  img.style.opacity = "0";
+/* 5 — Preview panel for debugging */
+function updatePreviewPanel() {
+    const preview = document.getElementById("previewPanel");
+    preview.innerHTML = "";
 
-  img.src = rewardImageSrc;
+    const decks = [
+        { name: "Garden Deck", items: deckGarden },
+        { name: "Mom Deck", items: deckMom },
+        { name: "Danganronpa Deck", items: deckDanganronpa },
+        { name: "Personal Deck B", items: deckPersonalB },
+        { name: "Card Back", items: [cardBackImage] }
+    ];
 
-  overlay.style.display = "flex";
-
-  requestAnimationFrame(() => {
-    img.style.transform = "scale(1)";
-    img.style.opacity = "1";
-  });
+    decks.forEach(deck => {
+        const section = document.createElement("div");
+        section.innerHTML = `<strong>${deck.name}</strong><br>`;
+        deck.items.forEach(src => {
+            const img = document.createElement("img");
+            img.src = src;
+            img.style.width = "60px";
+            img.style.margin = "4px";
+            img.style.borderRadius = "8px";
+            section.appendChild(img);
+        });
+        preview.appendChild(section);
+    });
 }
+
+/* 6 — Update preview after new game */
+const originalStartNewGame2 = startNewGame;
+startNewGame = function () {
+    originalStartNewGame2();
+    updatePreviewPanel();
+};
+
+
+
+
+
+<!-- end of patch --> 
+
+
+
 </script>
+
+<!-- END OF CHUNK 4 OF 10 -->
+
+<!-- START OF CHUNK 5 OF 10 -->
+
+<!-- ========================================= -->
+<!-- SECTION: IMAGE SOURCES FOR DANGANRONPA DECK -->
+<!-- ========================================= -->
+<script>
+/* -------------------------------------------------
+   PERSONAL DECK A: DANGANRONPA FRONTS
+   These will use your uploaded images.
+   Replace the src values anytime in the future.
+---------------------------------------------------*/
+
+const danganronpaFronts = {
+    swimmer: "",
+    glassesSuit: "",
+    rastaHair: "",
+    nerdyGirl: "",
+    protagonist: "",
+    evilGirl: "",
+    detectiveGirl: "",
+    chihiro: "",
+    blueHairGirl: "",
+    bikerGuy: ""
+};
+
+/* -------------------------------------------------
+   CARD BACK: MONOKUMA
+   This will also be filled with your uploaded image.
+---------------------------------------------------*/
+let monokumaBack = "";
+
+/* -------------------------------------------------
+   FUNCTION: Load Danganronpa Deck (called after uploads)
+---------------------------------------------------*/
+function loadDanganronpaDeck() {
+    deckDanganronpa = [
+        danganronpaFronts.swimmer,
+        danganronpaFronts.glassesSuit,
+        danganronpaFronts.rastaHair,
+        danganronpaFronts.nerdyGirl,
+        danganronpaFronts.protagonist,
+        danganronpaFronts.evilGirl,
+        danganronpaFronts.detectiveGirl,
+        danganronpaFronts.chihiro,
+        danganronpaFronts.blueHairGirl,
+        danganronpaFronts.bikerGuy
+    ];
+}
+
+/* -------------------------------------------------
+   FUNCTION: Set Monokuma Back Image
+---------------------------------------------------*/
+function setMonokumaBack(src) {
+    monokumaBack = src;
+    cardBackImage = monokumaBack;
+}
+
+/* -------------------------------------------------
+   NOTE:
+   Chunk 6 will handle the actual upload process.
+   Chunk 7 will handle flip + match logic.
+---------------------------------------------------*/
+</script>
+
+<!-- END OF CHUNK 5 OF 10 -->
+
+<!-- START OF CHUNK 6 OF 10 -->
+
+<!-- ========================================= -->
+<!-- SECTION: UPLOAD HANDLING (PERSONAL DECK B) -->
+<!-- ========================================= -->
+<script>
+/* -------------------------------------------------
+   PERSONAL DECK B: Uploaded Images
+---------------------------------------------------*/
+let uploadedImages = [];   // Stores up to 10 images
+const MAX_UPLOADS = 10;
+
+/* -------------------------------------------------
+   UPLOAD INPUT HANDLER
+---------------------------------------------------*/
+document.addEventListener("DOMContentLoaded", () => {
+    const uploadInput = document.getElementById("uploadInput");
+
+    uploadInput.addEventListener("change", async (event) => {
+        const files = Array.from(event.target.files);
+
+        for (const file of files) {
+            if (uploadedImages.length >= MAX_UPLOADS) break;
+
+            const src = await fileToDataURL(file);
+            uploadedImages.push(src);
+        }
+
+        updateUploadCount();
+        loadPersonalDeckB();
+    });
+});
+
+/* -------------------------------------------------
+   FILE → DATA URL CONVERSION
+---------------------------------------------------*/
+function fileToDataURL(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+    });
+}
+
+/* -------------------------------------------------
+   LOAD PERSONAL DECK B INTO GAME
+---------------------------------------------------*/
+function loadPersonalDeckB() {
+    deckPersonalB = [...uploadedImages];
+}
+
+/* -------------------------------------------------
+   UPDATE COUNTER DISPLAY
+---------------------------------------------------*/
+function updateUploadCount() {
+    const countEl = document.getElementById("uploadCount");
+    countEl.textContent = `Uploaded: ${uploadedImages.length} / ${MAX_UPLOADS}`;
+}
+
+/* -------------------------------------------------
+   RESET UPLOADS
+---------------------------------------------------*/
+function resetUploads() {
+    uploadedImages = [];
+    deckPersonalB = [];
+    document.getElementById("uploadInput").value = "";
+    updateUploadCount();
+}
+
+</script>
+
+<!-- END OF CHUNK 6 OF 10 -->
+
+
+<!-- START OF CHUNK 7 OF 10 -->
+
+<!-- ========================================= -->
+<!-- SECTION: FLIP + MATCH LOGIC -->
+<!-- ========================================= -->
+<script>
+/* -------------------------------------------------
+   MATCHING STATE
+---------------------------------------------------*/
+let firstCard = null;
+let secondCard = null;
+let lockBoard = false;
+let matchesFound = 0;
+
+/* -------------------------------------------------
+   HANDLE CARD FLIP
+---------------------------------------------------*/
+function handleCardFlip(card) {
+    if (lockBoard) return;
+    if (card === firstCard) return;
+
+    card.classList.add("flipped");
+
+    if (!firstCard) {
+        firstCard = card;
+        return;
+    }
+
+    secondCard = card;
+    lockBoard = true;
+
+    checkForMatch();
+}
+
+/* -------------------------------------------------
+   CHECK IF TWO FLIPPED CARDS MATCH
+---------------------------------------------------*/
+function checkForMatch() {
+    const img1 = firstCard.querySelector(".card-front img").src;
+    const img2 = secondCard.querySelector(".card-front img").src;
+
+    if (img1 === img2) {
+        lockMatchedCards();
+    } else {
+        unflipCards();
+    }
+}
+
+/* -------------------------------------------------
+   MATCH FOUND → LOCK CARDS
+---------------------------------------------------*/
+function lockMatchedCards() {
+    firstCard.removeEventListener("click", handleCardFlip);
+    secondCard.removeEventListener("click", handleCardFlip);
+
+    matchesFound++;
+
+    resetFlipState();
+
+    checkForWin();
+}
+
+/* -------------------------------------------------
+   NO MATCH → UNFLIP CARDS
+---------------------------------------------------*/
+function unflipCards() {
+    setTimeout(() => {
+        firstCard.classList.remove("flipped");
+        secondCard.classList.remove("flipped");
+        resetFlipState();
+    }, 900);
+}
+
+/* -------------------------------------------------
+   RESET FLIP STATE
+---------------------------------------------------*/
+function resetFlipState() {
+    [firstCard, secondCard] = [null, null];
+    lockBoard = false;
+}
+
+/* -------------------------------------------------
+   CHECK FOR WIN
+---------------------------------------------------*/
+function checkForWin() {
+    const totalPairs = currentDifficulty;
+
+    if (matchesFound >= totalPairs) {
+        document.getElementById("statusBar").textContent =
+            "🎉 All pairs matched! Great job!";
+    }
+}
+
+/* -------------------------------------------------
+   RESET MATCH COUNTER ON NEW GAME
+---------------------------------------------------*/
+function startNewGame() {
+    matchesFound = 0;
+    clearBoard();
+
+    const deck = buildDeckForTheme(currentTheme);
+    const trimmedDeck = deck.slice(0, currentDifficulty);
+
+    const fullDeck = duplicateAndShuffle(trimmedDeck);
+
+    renderBoard(fullDeck);
+
+    document.getElementById("statusBar").textContent =
+        `Theme: ${currentTheme}, Pairs: ${currentDifficulty}`;
+}
+
+</script>
+
+<!-- END OF CHUNK 7 OF 10 -->
+
+<!-- START OF CHUNK 8 OF 10 -->
+
+<!-- ========================================= -->
+<!-- SECTION: DECK POPULATION (Garden, Mom, DR) -->
+<!-- ========================================= -->
+<script>
+/* -------------------------------------------------
+   HELPER: Convert SVG <symbol> to Data URL
+---------------------------------------------------*/
+function svgSymbolToDataURL(symbolId) {
+    const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+            <use href="#${symbolId}" />
+        </svg>
+    `;
+    return "data:image/svg+xml;base64," + btoa(svg);
+}
+
+/* -------------------------------------------------
+   BUILD GARDEN DECK (3 flower icons)
+---------------------------------------------------*/
+function buildGardenDeck() {
+    deckGarden = [
+        svgSymbolToDataURL("icon-flower1"),
+        svgSymbolToDataURL("icon-flower2"),
+        svgSymbolToDataURL("icon-flower3")
+    ];
+}
+
+/* -------------------------------------------------
+   BUILD MOM DECK (garden-day hat)
+---------------------------------------------------*/
+function buildMomDeck() {
+    deckMom = [
+        svgSymbolToDataURL("icon-garden-hat")
+    ];
+}
+
+/* -------------------------------------------------
+   BUILD DANGANRONPA DECK (Chunk 5 images)
+---------------------------------------------------*/
+function buildDanganronpaDeck() {
+    loadDanganronpaDeck(); // from Chunk 5
+}
+
+/* -------------------------------------------------
+   SET MONOKUMA BACK IMAGE
+---------------------------------------------------*/
+function applyMonokumaBack() {
+    cardBackImage = monokumaBack;
+}
+
+/* -------------------------------------------------
+   INITIALIZE ALL DECKS ON PAGE LOAD
+---------------------------------------------------*/
+document.addEventListener("DOMContentLoaded", () => {
+    buildGardenDeck();
+    buildMomDeck();
+    buildDanganronpaDeck();
+    applyMonokumaBack();
+});
+
+</script>
+
+<!-- END OF CHUNK 8 OF 10 -->
+
+
+<!-- START OF CHUNK 9 OF 10 -->
+
+<!-- ========================================= -->
+<!-- SECTION: UX POLISH + SMALL ANIMATIONS -->
+<!-- ========================================= -->
+<style>
+    /* Fade-in animation for board on new game */
+    .board {
+        opacity: 0;
+        animation: boardFadeIn 0.6s ease forwards;
+    }
+
+    @keyframes boardFadeIn {
+        from { opacity: 0; transform: scale(0.97); }
+        to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* Shake animation for mismatched cards */
+    .shake {
+        animation: shakeAnim 0.4s ease;
+    }
+
+    @keyframes shakeAnim {
+        0%   { transform: translateX(0); }
+        25%  { transform: translateX(-4px); }
+        50%  { transform: translateX(4px); }
+        75%  { transform: translateX(-4px); }
+        100% { transform: translateX(0); }
+    }
+</style>
+
+<script>
+/* -------------------------------------------------
+   APPLY SHAKE EFFECT ON MISMATCH
+---------------------------------------------------*/
+function unflipCards() {
+    firstCard.classList.add("shake");
+    secondCard.classList.add("shake");
+
+    setTimeout(() => {
+        firstCard.classList.remove("shake");
+        secondCard.classList.remove("shake");
+
+        firstCard.classList.remove("flipped");
+        secondCard.classList.remove("flipped");
+
+        resetFlipState();
+    }, 900);
+}
+
+/* -------------------------------------------------
+   STATUS BAR HELPER
+---------------------------------------------------*/
+function updateStatusBar() {
+    const status = document.getElementById("statusBar");
+    status.textContent = `Theme: ${currentTheme}, Pairs: ${currentDifficulty}`;
+}
+
+/* -------------------------------------------------
+   NEW GAME OVERRIDE (adds polish)
+---------------------------------------------------*/
+const originalStartNewGame = startNewGame;
+
+startNewGame = function () {
+    matchesFound = 0;
+    clearBoard();
+
+    const deck = buildDeckForTheme(currentTheme);
+    const trimmedDeck = deck.slice(0, currentDifficulty);
+    const fullDeck = duplicateAndShuffle(trimmedDeck);
+
+    renderBoard(fullDeck);
+    updateStatusBar();
+};
+
+</script>
+
+<!-- END OF CHUNK 9 OF 10 -->
+
+<!-- start of patch - image preview -->
+<div id="previewPanel" style="
+    margin-top:20px;
+    padding:10px;
+    background:#eef5ea;
+    border-radius:12px;
+    font-size:0.85rem;
+">
+    <strong>Image Preview Panel</strong><br>
+    (Shows all deck images + card back)
+</div>
+<!-- end of patch image preview  -->
+
+
+<!-- START OF CHUNK 10 OF 10 -->
+
+<!-- ========================================= -->
+<!-- SECTION: CLEAN FILE CLOSURE -->
+<!-- ========================================= -->
 
 </body>
 </html>
+
+<!-- END OF CHUNK 10 OF 10 -->
+
