@@ -113,7 +113,7 @@
 <div id="controls">
     <select id="themeSelect">
         <option value="garden">Garden (Default)</option>
-        <option value="mom">Mom’s Deck</option>
+        <option value="mom">Mahotsukai no Yakusoku Deck</option>
         <option value="danganronpa">Danganronpa Deck</option>
     </select>
 
@@ -187,8 +187,19 @@ function buildGardenDeck() {
     ];
 }
 
-function buildMomDeck() {
-    deckMom = [...deckGarden]; // re-use defaults for now
+function buildMOMDeck() {
+    deckDanganronpa = [
+        RAW+"PW01.png",
+        RAW+"PW02.png",
+        RAW+"PW03.png",
+        RAW+"PW04.png",
+        RAW+"PW05.png",
+        RAW+"PW06.png",
+        RAW+"PW07.png",
+        RAW+"PW08.png",
+        RAW+"PW09.png",
+        RAW+"PW10.png"
+    ];
 }
 
 function applyGardenBack() {
@@ -197,8 +208,8 @@ function applyGardenBack() {
 }
 
 function applyMomBack() {
-    cardBackImage = RAW+"Defaultcardback.jpg";
-    rewardImage = RAW+"Defaultreward.jpg";
+    cardBackImage = RAW+"PWcardback.jpg";
+    rewardImage = RAW+"PWreward.jpg";
 }
 
 function buildDanganronpaDeck() {
@@ -257,7 +268,7 @@ function buildDeckForTheme(theme) {
         applyGardenBack();
         return deckGarden;
     }
-    if (theme === "mom") {
+    if (theme === "Mahotsukai no Yakusoku") {
         applyMomBack();
         return deckMom;
     }
@@ -442,7 +453,7 @@ function updatePreviewPanel() {
 
     const decks = [
         { name: "Garden Deck", items: deckGarden },
-        { name: "Mom Deck", items: deckMom },
+        { name: "Mahotsukai no Yakusoku Deck", items: deckMom },
         { name: "Danganronpa Deck", items: deckDanganronpa },
         { name: "Personal Deck B", items: deckPersonalB },
         { name: "Card Back", items: [cardBackImage] },
