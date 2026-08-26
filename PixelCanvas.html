@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Pixel Glyph Foundry</title>
+
+<style>
+    body {
+        font-family: sans-serif;
+        font-size: 16px;
+        margin: 0;
+        padding: 20px;
+        background: #f5f5f5;
+    }
+    #grid {
+        display: grid;
+        margin-top: 20px;
+        touch-action: none;
+    }
+    .cell {
+        width: 20px;
+        height: 20px;
+        background: white;
+        border: 1px solid #ccc;
+    }
+    .cell.active {
+        background: black;
+    }
+    #controls button {
+        padding: 10px 20px;
+        margin: 5px;
+        font-size: 16px;
+    }
+    #output {
+        margin-top: 20px;
+        white-space: pre-wrap;
+        background: #eee;
+        padding: 10px;
+    }
+</style>
+</head>
+
+<body>
+
+<h2>Pixel Glyph Foundry</h2>
+
+<label>Font Name:
+    <input id="fontName" placeholder="MyCipher" style="margin-bottom:10px;">
+</label>
+<br>
+
+<label>Letter:
+    <input id="letterInput" maxlength="1">
+</label>
+
+<div id="grid"></div>
+
+<div id="controls">
+    <button id="clearBtn">Clear</button>
+    <button id="mirrorHBtn">Mirror ↔</button>
+    <button id="mirrorVBtn">Mirror ↕</button>
+    <button id="copyFromBtn">Load Existing</button>
+    <button id="nextBtn">Save Letter</button>
+    <button id="exportBtn">Show JSON</button>
+    <button id="copyBtn">Copy JSON</button>
+    <button id="downloadBtn">Download JSON</button>
+</div>
+
+<pre id="output"></pre>
+
+<script>
+    const GRID_SIZE = 16;
+    const grid = document.getElementById("grid");
+    const letterInput = document.getElementById("letterInput");
+    const fontNameInput = document.getElementById("fontName");
+    const output = document.getElementById("output");
+
+    let glyphs = JSON.parse(localStorage.getItem("glyphs") || "{}");
+
+    // Build grid
+    grid.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 20px)`;
+    let cells = [];
+
+    for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        grid.appendChild(cell);
+        cells.push(cell);
+    }
+
+    // Pencil mode (drag to draw)
+    let drawing = false;
+    grid.addEventListener("pointerdown", e => {
+        drawing = true;
+        toggleCell(e.target);
+    });
+    grid.addEventListener("pointermove", e => {
+        if (drawing) toggleCell(e.target);
+    });
+    grid.addEventListener("pointerup", () => drawing = false);
+    grid.addEventListener("pointerleave", () => drawing = false);
+
+    function toggleCell(cell) {
+        if (!cell.classList.contains("cell")) return;
+        cell.classList.add("active");
+    }
+
+    function clearGrid() {
+        cells.forEach(c => c.classList.remove("active"));
+    }
+
+    function captureGrid() {
+        let matrix = [];
+        for (let y = 0; y < GRID_SIZE; y++) {
+            let row = [];
+            for (let x = 0; x < GRID_SIZE; x++) {
+                const idx = y * GRID_SIZE + x;
+                row.push(cells[idx].classList.contains("active") ? 1 : 0);
+            }
+            matrix.push(row);
+        }
+        return matrix;
+    }
+
+    function loadMatrix(matrix) {
+        clearGrid();
+        for (let y = 0; y < GRID_SIZE; y++) {
+            for (let x = 0; x < GRID_SIZE; x++) {
+                const idx = y * GRID_SIZE + x;
+                if (matrix[y][x] === 1) cells[idx].classList.add("active");
+            }
+        }
+    }
+
+    // Mirror horizontally
+    document.getElementById("mirrorHBtn").onclick = () => {
+        let m = captureGrid();
+        for (let y = 0; y < GRID_SIZE; y++) {
+            m[y].reverse();
+        }
+        loadMatrix(m);
+    };
+
+    // Mirror vertically
+    document.getElementById("mirrorVBtn").onclick = () => {
+        let m = captureGrid();
+        m.reverse();
+        loadMatrix(m);
+    };
+
+    // Load existing glyph
+    document.getElementById("copyFromBtn").onclick = () => {
+        const letter = letterInput.value.toUpperCase();
+        if (!glyphs[letter]) {
+            alert("No existing glyph for this letter");
+            return;
+        }
+        loadMatrix(glyphs[letter]);
+    };
+
+    // Save letter
+    document.getElementById("nextBtn").onclick = () => {
+        const letter = letterInput.value.toUpperCase();
+        const fontName = fontNameInput.value || "DefaultFont";
+
+        if (!letter) {
+            alert("Enter a letter first");
+            return;
+        }
+
+        if (!glyphs[fontName]) glyphs[fontName] = {};
+        glyphs[fontName][letter] = captureGrid();
+
+        localStorage.setItem("glyphs", JSON.stringify(glyphs));
+        clearGrid();
+        letterInput.value = "";
+        alert(`Saved glyph for ${letter} in font "${fontName}"`);
+    };
+
+    // Show JSON
+    document.getElementById("exportBtn").onclick = () => {
+        output.textContent = JSON.stringify(glyphs, null, 2);
+    };
+
+    // Copy JSON
+    document.getElementById("copyBtn").onclick = () => {
+        const json = JSON.stringify(glyphs, null, 2);
+        navigator.clipboard.writeText(json).then(() => {
+            alert("JSON copied to clipboard!");
+        });
+    };
+
+    // Download JSON
+    document.getElementById("downloadBtn").onclick = () => {
+        const json = JSON.stringify(glyphs, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "glyphs.json";
+        a.click();
+
+        URL.revokeObjectURL(url);
+    };
+</script>
+
+</body>
+</html>
