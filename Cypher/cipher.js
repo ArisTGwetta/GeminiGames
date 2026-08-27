@@ -1,196 +1,229 @@
-let glyphs = {};
-let fonts = [];
+/* ---------------------------------------------------------
+   Load Fonts
+--------------------------------------------------------- */
 
-async function loadGlyphs() {
-    const response = await fetch("glyphs.json");
-    glyphs = await response.json();
+const glyphs = {
+    "Namor": NAMOR_GLYPHS,   // your existing glyph set
+    // add more fonts later
+};
 
-    fonts = Object.keys(glyphs);
-
+window.onload = () => {
     const cipherFont = document.getElementById("cipherFont");
-    const decipherFont = document.getElementById("decipherFont");
+    const decodeFont = document.getElementById("decodeFont");
 
-    fonts.forEach(font => {
+    Object.keys(glyphs).forEach(f => {
         const opt1 = document.createElement("option");
-        opt1.value = font;
-        opt1.textContent = font;
+        opt1.value = f;
+        opt1.textContent = f;
         cipherFont.appendChild(opt1);
 
         const opt2 = document.createElement("option");
-        opt2.value = font;
-        opt2.textContent = font;
-        decipherFont.appendChild(opt2);
+        opt2.value = f;
+        opt2.textContent = f;
+        decodeFont.appendChild(opt2);
     });
-}
+};
 
-loadGlyphs();
+/* ---------------------------------------------------------
+   Cipher (Text → Image)
+--------------------------------------------------------- */
 
-function encode() {
-    const fontName = document.getElementById("cipherFont").value;
-    const font = glyphs[fontName];
-
-    const text = document.getElementById("cipherInput").value.toUpperCase();
-    const lines = text.split("\n");
+function generateCipher() {
+    const font = document.getElementById("cipherFont").value;
+    const text = document.getElementById("cipherText").value;
 
     const TILE = 16;
-    const SCALE = 4;
-    const ghost = "rgb(230,230,230)";
-
-    const glyphW = TILE * SCALE;
-    const glyphH = TILE * SCALE;
+    const PADDING = 1;
 
     const canvas = document.getElementById("cipherCanvas");
     const ctx = canvas.getContext("2d");
 
-    const maxLen = Math.max(...lines.map(l => l.length));
-    const width = (1 + maxLen * 16 + (maxLen - 1) * 1 + 1) * SCALE;
-    const height = lines.length * (glyphH + SCALE * 2);
+    const chars = text.split("");
+    const width = chars.length * (TILE + PADDING) + PADDING;
+    const height = TILE + PADDING * 2;
 
     canvas.width = width;
     canvas.height = height;
 
-    ctx.fillStyle = "white";
+    ctx.fillStyle = "rgb(230,230,230)";
     ctx.fillRect(0, 0, width, height);
 
-    let yCell = 0;
+    chars.forEach((ch, i) => {
+        const glyph = glyphs[font][ch.toUpperCase()] || glyphs[font][" "];
+        const x0 = PADDING + i * (TILE + PADDING);
+        const y0 = PADDING;
 
-    for (const line of lines) {
-        let xCell = 0;
-
-        // top frame
-        ctx.fillStyle = ghost;
-        ctx.fillRect(0, yCell, width, SCALE);
-
-        // left frame
-        ctx.fillRect(0, yCell, SCALE, glyphH + SCALE);
-
-        xCell = SCALE;
-
-        for (let i = 0; i < line.length; i++) {
-            const ch = line[i];
-            const matrix = font[ch];
-            if (!matrix) {
-                xCell += glyphW + SCALE;
-                continue;
-            }
-
-            // draw glyph
-            for (let gy = 0; gy < TILE; gy++) {
-                for (let gx = 0; gx < TILE; gx++) {
-                    ctx.fillStyle = matrix[gy][gx] === 1 ? "black" : "white";
-                    ctx.fillRect(
-                        xCell + gx * SCALE,
-                        yCell + SCALE + gy * SCALE,
-                        SCALE,
-                        SCALE
-                    );
+        for (let y = 0; y < TILE; y++) {
+            for (let x = 0; x < TILE; x++) {
+                if (glyph[y][x] === 1) {
+                    ctx.fillStyle = "black";
+                    ctx.fillRect(x0 + x, y0 + y, 1, 1);
                 }
             }
-
-            // vertical ghost divider
-            ctx.fillStyle = ghost;
-            ctx.fillRect(xCell + glyphW, yCell, SCALE, glyphH + SCALE);
-
-            xCell += glyphW + SCALE;
         }
-
-        // right frame
-        ctx.fillRect(width - SCALE, yCell, SCALE, glyphH + SCALE);
-
-        // bottom frame
-        ctx.fillRect(0, yCell + glyphH + SCALE, width, SCALE);
-
-        yCell += glyphH + SCALE * 2;
-    }
+    });
 }
 
-function downloadCipher() {
+function openCipherImage() {
     const canvas = document.getElementById("cipherCanvas");
-    const link = document.createElement("a");
-    link.download = "cipher.png";
-    link.href = canvas.toDataURL();
-    link.click();
+    const url = canvas.toDataURL("image/png");
+    window.open(url);
 }
 
-function decode() {
-    const fontName = document.getElementById("decipherFont").value;
-    const font = glyphs[fontName];
+/* ---------------------------------------------------------
+   Decipher (Image → Text)
+--------------------------------------------------------- */
 
-    const file = document.getElementById("imageUpload").files[0];
+function decodeImage() {
+    const file = document.getElementById("decodeUpload").files[0];
     if (!file) return;
 
     const img = new Image();
-    img.onload = () => {
-        const TILE = 16;
-        const SCALE = 4;
-
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        ctx.drawImage(img, 0, 0);
-
-        const cellSize = SCALE;
-
-        let result = "";
-        let yCell = 0;
-
-        while (yCell + (TILE + 2) * cellSize <= canvas.height) {
-            let xCell = 0;
-            let line = "";
-
-            xCell += cellSize; // skip left frame
-
-            while (xCell + TILE * cellSize <= canvas.width - cellSize) {
-                const matrix = [];
-
-                for (let gy = 0; gy < TILE; gy++) {
-                    const row = [];
-                    for (let gx = 0; gx < TILE; gx++) {
-                        const px = sampleCell(ctx, xCell + gx * cellSize, yCell + cellSize + gy * cellSize, cellSize);
-                        row.push(px < 128 ? 1 : 0);
-                    }
-                    matrix.push(row);
-                }
-
-                const ch = matchGlyph(matrix, font);
-                line += ch;
-
-                xCell += TILE * cellSize + cellSize; // skip divider
-            }
-
-            result += line + "\n";
-            yCell += (TILE + 2) * cellSize;
-        }
-
-        document.getElementById("decipherOutput").textContent = result.trim();
-    };
-
+    img.onload = () => processDecode(img);
     img.src = URL.createObjectURL(file);
 }
 
-function sampleCell(ctx, x, y, size) {
-    const data = ctx.getImageData(x, y, size, size).data;
-    let sum = 0;
-    for (let i = 0; i < data.length; i += 4) {
-        sum += data[i]; // red channel
+function processDecode(img) {
+    const TILE = 16;
+
+    /* Draw screenshot into canvas */
+    const temp = document.createElement("canvas");
+    temp.width = img.width;
+    temp.height = img.height;
+    const tctx = temp.getContext("2d", { willReadFrequently: true });
+    tctx.drawImage(img, 0, 0);
+
+    /* Convert to grayscale + aggressive threshold */
+    const data = tctx.getImageData(0, 0, temp.width, temp.height);
+    const px = data.data;
+
+    for (let i = 0; i < px.length; i += 4) {
+        const lum = 0.299 * px[i] + 0.587 * px[i+1] + 0.114 * px[i+2];
+        const bw = lum < 180 ? 0 : 255;
+        px[i] = px[i+1] = px[i+2] = bw;
     }
-    return sum / (data.length / 4);
+    tctx.putImageData(data, 0, 0);
+
+    /* Detect ghost frame */
+    const frame = detectGhostFrame(tctx, temp.width, temp.height);
+    if (!frame) {
+        document.getElementById("decodeOutput").textContent =
+            "Could not detect ghost frame.";
+        return;
+    }
+
+    const { x0, y0, x1, y1 } = frame;
+
+    /* Crop to frame */
+    const w = x1 - x0 + 1;
+    const h = y1 - y0 + 1;
+
+    const crop = document.createElement("canvas");
+    crop.width = w;
+    crop.height = h;
+    const cctx = crop.getContext("2d", { willReadFrequently: true });
+    cctx.drawImage(temp, x0, y0, w, h, 0, 0, w, h);
+
+    /* Snap to grid */
+    const chars = Math.floor(w / (TILE + 1));
+    let result = "";
+
+    const font = document.getElementById("decodeFont").value;
+    const fontGlyphs = glyphs[font];
+
+    for (let i = 0; i < chars; i++) {
+        const gx = i * (TILE + 1);
+
+        const matrix = [];
+        for (let y = 0; y < TILE; y++) {
+            const row = [];
+            for (let x = 0; x < TILE; x++) {
+                const px = cctx.getImageData(gx + x, 1 + y, 1, 1).data;
+                row.push(px[0] < 128 ? 1 : 0);
+            }
+            matrix.push(row);
+        }
+
+        const ch = matchGlyph(matrix, fontGlyphs);
+        result += ch;
+    }
+
+    document.getElementById("decodeOutput").textContent = result;
 }
 
-function matchGlyph(tile, font) {
-    for (const ch in font) {
-        if (sameMatrix(tile, font[ch])) return ch;
-    }
-    return "?";
-}
+/* ---------------------------------------------------------
+   Ghost Frame Detection
+--------------------------------------------------------- */
 
-function sameMatrix(a, b) {
-    for (let y = 0; y < a.length; y++) {
-        for (let x = 0; x < a[y].length; x++) {
-            if (a[y][x] !== b[y][x]) return false;
+function detectGhostFrame(ctx, w, h) {
+    const isGhost = (r,g,b) =>
+        r >= 220 && r <= 240 &&
+        g >= 220 && g <= 240 &&
+        b >= 220 && b <= 240;
+
+    let top = null, bottom = null, left = null, right = null;
+
+    for (let y = 0; y < h; y++) {
+        const px = ctx.getImageData(0, y, 1, 1).data;
+        if (isGhost(px[0], px[1], px[2])) {
+            top = y;
+            break;
         }
     }
-    return true;
+
+    for (let y = h - 1; y >= 0; y--) {
+        const px = ctx.getImageData(0, y, 1, 1).data;
+        if (isGhost(px[0], px[1], px[2])) {
+            bottom = y;
+            break;
+        }
+    }
+
+    for (let x = 0; x < w; x++) {
+        const px = ctx.getImageData(x, 0, 1, 1).data;
+        if (isGhost(px[0], px[1], px[2])) {
+            left = x;
+            break;
+        }
+    }
+
+    for (let x = w - 1; x >= 0; x--) {
+        const px = ctx.getImageData(x, 0, 1, 1).data;
+        if (isGhost(px[0], px[1], px[2])) {
+            right = x;
+            break;
+        }
+    }
+
+    if (top === null || bottom === null || left === null || right === null)
+        return null;
+
+    return { x0: left, y0: top, x1: right, y1: bottom };
+}
+
+/* ---------------------------------------------------------
+   Glyph Matching
+--------------------------------------------------------- */
+
+function matchGlyph(matrix, fontGlyphs) {
+    let best = " ";
+    let bestScore = Infinity;
+
+    for (const ch in fontGlyphs) {
+        const g = fontGlyphs[ch];
+        let score = 0;
+
+        for (let y = 0; y < 16; y++) {
+            for (let x = 0; x < 16; x++) {
+                if (matrix[y][x] !== g[y][x]) score++;
+            }
+        }
+
+        if (score < bestScore) {
+            bestScore = score;
+            best = ch;
+        }
+    }
+
+    return best;
 }
