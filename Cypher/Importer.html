@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Glyph Importer</title>
+<style>
+    body { font-family: sans-serif; padding: 20px; }
+    canvas { border: 1px solid #ccc; margin-top: 10px; }
+    pre { background: #eee; padding: 10px; }
+</style>
+</head>
+
+<body>
+
+<h2>Glyph Importer</h2>
+
+<input type="file" id="upload">
+<button onclick="processGlyph()">Import & Convert</button>
+
+<canvas id="preview"></canvas>
+
+<h3>Generated 16×16 Matrix</h3>
+<pre id="output"></pre>
+
+<script src="importer.js"></script>
+</body>
+</html>
