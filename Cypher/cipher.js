@@ -140,11 +140,16 @@ function downloadCipherImage() {
 
     const filename = `cypher-${yyyy}${mm}${dd}-${hh}${min}.png`;
 
-    // Download
-    const link = document.createElement("a");
-    link.download = filename;
-    link.href = finalCanvas.toDataURL("image/png");
-    link.click();
+    // Convert to Blob (THIS is the fix)
+    finalCanvas.toBlob(blob => {
+        const link = document.createElement("a");
+        link.download = filename;
+        link.href = URL.createObjectURL(blob);
+        link.click();
+
+        // Cleanup
+        URL.revokeObjectURL(link.href);
+    }, "image/png");
 }
 
 
