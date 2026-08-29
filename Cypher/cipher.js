@@ -101,6 +101,52 @@ function openCipherImage() {
     window.open(url);
 }
 
+function downloadCipherImage() {
+    const canvas = document.getElementById("cipherCanvas");
+
+    const SCALE = 6;
+    const PADDING = 60;
+
+    // Scaled cipher dimensions
+    const scaledWidth = canvas.width * SCALE;
+    const scaledHeight = canvas.height * SCALE;
+
+    // Final padded canvas
+    const finalCanvas = document.createElement("canvas");
+    finalCanvas.width = scaledWidth + PADDING * 2;
+    finalCanvas.height = scaledHeight + PADDING * 2;
+
+    const fctx = finalCanvas.getContext("2d");
+    fctx.imageSmoothingEnabled = false;
+
+    // Background
+    fctx.fillStyle = "rgb(230,230,230)";
+    fctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+    // Draw scaled cipher centered
+    fctx.drawImage(
+        canvas,
+        0, 0, canvas.width, canvas.height,
+        PADDING, PADDING, scaledWidth, scaledHeight
+    );
+
+    // Generate timestamp
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const hh = String(now.getHours()).padStart(2, "0");
+    const min = String(now.getMinutes()).padStart(2, "0");
+
+    const filename = `cypher-${yyyy}${mm}${dd}-${hh}${min}.png`;
+
+    // Download
+    const link = document.createElement("a");
+    link.download = filename;
+    link.href = finalCanvas.toDataURL("image/png");
+    link.click();
+}
+
 
 /* ---------------------------------------------------------
    Decipher (Image → Text)
