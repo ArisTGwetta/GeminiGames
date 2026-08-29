@@ -71,25 +71,36 @@ function generateCipher() {
 function openCipherImage() {
     const canvas = document.getElementById("cipherCanvas");
 
-    // 6x scale
     const SCALE = 6;
+    const PADDING = 60;
 
-    const scaled = document.createElement("canvas");
-    scaled.width = canvas.width * SCALE;
-    scaled.height = canvas.height * SCALE;
+    // Scaled cipher dimensions
+    const scaledWidth = canvas.width * SCALE;
+    const scaledHeight = canvas.height * SCALE;
 
-    const sctx = scaled.getContext("2d");
-    sctx.imageSmoothingEnabled = false; // keep pixel crisp
+    // Final padded canvas
+    const finalCanvas = document.createElement("canvas");
+    finalCanvas.width = scaledWidth + PADDING * 2;
+    finalCanvas.height = scaledHeight + PADDING * 2;
 
-    sctx.drawImage(
+    const fctx = finalCanvas.getContext("2d");
+    fctx.imageSmoothingEnabled = false;
+
+    // Fill background with light gray (same as cipher)
+    fctx.fillStyle = "rgb(230,230,230)";
+    fctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+    // Draw scaled cipher centered inside padding
+    fctx.drawImage(
         canvas,
         0, 0, canvas.width, canvas.height,
-        0, 0, scaled.width, scaled.height
+        PADDING, PADDING, scaledWidth, scaledHeight
     );
 
-    const url = scaled.toDataURL("image/png");
+    const url = finalCanvas.toDataURL("image/png");
     window.open(url);
 }
+
 
 /* ---------------------------------------------------------
    Decipher (Image → Text)
