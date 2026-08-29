@@ -1,27 +1,31 @@
 /* ---------------------------------------------------------
-   Load Fonts
+   Load glyphs.json dynamically
 --------------------------------------------------------- */
 
-const glyphs = {
-    "Namor": NAMOR_GLYPHS,   // your existing glyph set
-    // add more fonts later
-};
+let GLYPHS = {};
 
-window.onload = () => {
-    const cipherFont = document.getElementById("cipherFont");
-    const decodeFont = document.getElementById("decodeFont");
+window.onload = async () => {
+    try {
+        const response = await fetch("glyphs.json");
+        GLYPHS = await response.json();
 
-    Object.keys(glyphs).forEach(f => {
-        const opt1 = document.createElement("option");
-        opt1.value = f;
-        opt1.textContent = f;
-        cipherFont.appendChild(opt1);
+        const cipherFont = document.getElementById("cipherFont");
+        const decodeFont = document.getElementById("decodeFont");
 
-        const opt2 = document.createElement("option");
-        opt2.value = f;
-        opt2.textContent = f;
-        decodeFont.appendChild(opt2);
-    });
+        Object.keys(GLYPHS).forEach(font => {
+            const opt1 = document.createElement("option");
+            opt1.value = font;
+            opt1.textContent = font;
+            cipherFont.appendChild(opt1);
+
+            const opt2 = document.createElement("option");
+            opt2.value = font;
+            opt2.textContent = font;
+            decodeFont.appendChild(opt2);
+        });
+    } catch (e) {
+        alert("Could not load glyphs.json");
+    }
 };
 
 /* ---------------------------------------------------------
@@ -33,14 +37,14 @@ function generateCipher() {
     const text = document.getElementById("cipherText").value;
 
     const TILE = 16;
-    const PADDING = 1;
+    const PAD = 1;
 
     const canvas = document.getElementById("cipherCanvas");
     const ctx = canvas.getContext("2d");
 
     const chars = text.split("");
-    const width = chars.length * (TILE + PADDING) + PADDING;
-    const height = TILE + PADDING * 2;
+    const width = chars.length * (TILE + PAD) + PAD;
+    const height = TILE + PAD * 2;
 
     canvas.width = width;
     canvas.height = height;
@@ -49,9 +53,9 @@ function generateCipher() {
     ctx.fillRect(0, 0, width, height);
 
     chars.forEach((ch, i) => {
-        const glyph = glyphs[font][ch.toUpperCase()] || glyphs[font][" "];
-        const x0 = PADDING + i * (TILE + PADDING);
-        const y0 = PADDING;
+        const glyph = GLYPHS[font][ch.toUpperCase()] || GLYPHS[font][" "];
+        const x0 = PAD + i * (TILE + PAD);
+        const y0 = PAD;
 
         for (let y = 0; y < TILE; y++) {
             for (let x = 0; x < TILE; x++) {
@@ -86,14 +90,13 @@ function decodeImage() {
 function processDecode(img) {
     const TILE = 16;
 
-    /* Draw screenshot into canvas */
     const temp = document.createElement("canvas");
     temp.width = img.width;
     temp.height = img.height;
     const tctx = temp.getContext("2d", { willReadFrequently: true });
     tctx.drawImage(img, 0, 0);
 
-    /* Convert to grayscale + aggressive threshold */
+    /* Aggressive threshold */
     const data = tctx.getImageData(0, 0, temp.width, temp.height);
     const px = data.data;
 
@@ -114,7 +117,6 @@ function processDecode(img) {
 
     const { x0, y0, x1, y1 } = frame;
 
-    /* Crop to frame */
     const w = x1 - x0 + 1;
     const h = y1 - y0 + 1;
 
@@ -124,12 +126,11 @@ function processDecode(img) {
     const cctx = crop.getContext("2d", { willReadFrequently: true });
     cctx.drawImage(temp, x0, y0, w, h, 0, 0, w, h);
 
-    /* Snap to grid */
+    const font = document.getElementById("decodeFont").value;
+    const fontGlyphs = GLYPHS[font];
+
     const chars = Math.floor(w / (TILE + 1));
     let result = "";
-
-    const font = document.getElementById("decodeFont").value;
-    const fontGlyphs = glyphs[font];
 
     for (let i = 0; i < chars; i++) {
         const gx = i * (TILE + 1);
@@ -165,34 +166,22 @@ function detectGhostFrame(ctx, w, h) {
 
     for (let y = 0; y < h; y++) {
         const px = ctx.getImageData(0, y, 1, 1).data;
-        if (isGhost(px[0], px[1], px[2])) {
-            top = y;
-            break;
-        }
+        if (isGhost(px[0], px[1], px[2])) { top = y; break; }
     }
 
     for (let y = h - 1; y >= 0; y--) {
         const px = ctx.getImageData(0, y, 1, 1).data;
-        if (isGhost(px[0], px[1], px[2])) {
-            bottom = y;
-            break;
-        }
+        if (isGhost(px[0], px[1], px[2])) { bottom = y; break; }
     }
 
     for (let x = 0; x < w; x++) {
         const px = ctx.getImageData(x, 0, 1, 1).data;
-        if (isGhost(px[0], px[1], px[2])) {
-            left = x;
-            break;
-        }
+        if (isGhost(px[0], px[1], px[2])) { left = x; break; }
     }
 
     for (let x = w - 1; x >= 0; x--) {
         const px = ctx.getImageData(x, 0, 1, 1).data;
-        if (isGhost(px[0], px[1], px[2])) {
-            right = x;
-            break;
-        }
+        if (isGhost(px[0], px[1], px[2])) { right = x; break; }
     }
 
     if (top === null || bottom === null || left === null || right === null)
