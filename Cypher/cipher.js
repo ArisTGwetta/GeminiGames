@@ -70,7 +70,24 @@ function generateCipher() {
 
 function openCipherImage() {
     const canvas = document.getElementById("cipherCanvas");
-    const url = canvas.toDataURL("image/png");
+
+    // 6x scale
+    const SCALE = 6;
+
+    const scaled = document.createElement("canvas");
+    scaled.width = canvas.width * SCALE;
+    scaled.height = canvas.height * SCALE;
+
+    const sctx = scaled.getContext("2d");
+    sctx.imageSmoothingEnabled = false; // keep pixel crisp
+
+    sctx.drawImage(
+        canvas,
+        0, 0, canvas.width, canvas.height,
+        0, 0, scaled.width, scaled.height
+    );
+
+    const url = scaled.toDataURL("image/png");
     window.open(url);
 }
 
