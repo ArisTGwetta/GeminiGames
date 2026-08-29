@@ -49,7 +49,8 @@ function generateCipher() {
     canvas.width = width;
     canvas.height = height;
 
-    ctx.fillStyle = "rgb(230,230,230)";
+    // Consistent background color
+    ctx.fillStyle = "rgb(200,200,200)";
     ctx.fillRect(0, 0, width, height);
 
     chars.forEach((ch, i) => {
@@ -68,38 +69,9 @@ function generateCipher() {
     });
 }
 
-function openCipherImage() {
-    const canvas = document.getElementById("cipherCanvas");
-
-    const SCALE = 6;
-    const PADDING = 60;
-
-    // Scaled cipher dimensions
-    const scaledWidth = canvas.width * SCALE;
-    const scaledHeight = canvas.height * SCALE;
-
-    // Final padded canvas
-    const finalCanvas = document.createElement("canvas");
-    finalCanvas.width = scaledWidth + PADDING * 2;
-    finalCanvas.height = scaledHeight + PADDING * 2;
-
-    const fctx = finalCanvas.getContext("2d");
-    fctx.imageSmoothingEnabled = false;
-
-    // Fill background with light gray (same as cipher)
-    fctx.fillStyle = "rgb(230,230,230)";
-    fctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-
-    // Draw scaled cipher centered inside padding
-    fctx.drawImage(
-        canvas,
-        0, 0, canvas.width, canvas.height,
-        PADDING, PADDING, scaledWidth, scaledHeight
-    );
-
-    const url = finalCanvas.toDataURL("image/png");
-    window.open(url);
-}
+/* ---------------------------------------------------------
+   Export: Download (Blob)
+--------------------------------------------------------- */
 
 function downloadCipherImage() {
     const canvas = document.getElementById("cipherCanvas");
@@ -107,11 +79,9 @@ function downloadCipherImage() {
     const SCALE = 6;
     const PADDING = 60;
 
-    // Scaled cipher dimensions
     const scaledWidth = canvas.width * SCALE;
     const scaledHeight = canvas.height * SCALE;
 
-    // Final padded canvas
     const finalCanvas = document.createElement("canvas");
     finalCanvas.width = scaledWidth + PADDING * 2;
     finalCanvas.height = scaledHeight + PADDING * 2;
@@ -119,18 +89,15 @@ function downloadCipherImage() {
     const fctx = finalCanvas.getContext("2d");
     fctx.imageSmoothingEnabled = false;
 
-    // Background
-    fctx.fillStyle = "rgb(230,230,230)";
+    fctx.fillStyle = "rgb(200,200,200)";
     fctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-    // Draw scaled cipher centered
     fctx.drawImage(
         canvas,
         0, 0, canvas.width, canvas.height,
         PADDING, PADDING, scaledWidth, scaledHeight
     );
 
-    // Generate timestamp
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -140,18 +107,45 @@ function downloadCipherImage() {
 
     const filename = `cypher-${yyyy}${mm}${dd}-${hh}${min}.png`;
 
-    // Convert to Blob (THIS is the fix)
     finalCanvas.toBlob(blob => {
         const link = document.createElement("a");
         link.download = filename;
         link.href = URL.createObjectURL(blob);
         link.click();
-
-        // Cleanup
         URL.revokeObjectURL(link.href);
     }, "image/png");
 }
 
+/* ---------------------------------------------------------
+   Export: Copy to Clipboard
+--------------------------------------------------------- */
+
+async function copyCipherToClipboard() {
+    const canvas = document.getElementById("cipherCanvas");
+
+    const blob = await new Promise(resolve =>
+        canvas.toBlob(resolve, "image/png")
+    );
+
+    const item = new ClipboardItem({ "image/png": blob });
+    await navigator.clipboard.write([item]);
+
+    alert("Cipher image copied to clipboard!");
+}
+
+/* ---------------------------------------------------------
+   Export: Save to Photos (iOS-friendly)
+--------------------------------------------------------- */
+
+function saveCipherToPhotos() {
+    const canvas = document.getElementById("cipherCanvas");
+
+    canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }, "image/png");
+}
 
 /* ---------------------------------------------------------
    Decipher (Image → Text)
@@ -175,7 +169,6 @@ function processDecode(img) {
     const tctx = temp.getContext("2d", { willReadFrequently: true });
     tctx.drawImage(img, 0, 0);
 
-    /* Aggressive threshold */
     const data = tctx.getImageData(0, 0, temp.width, temp.height);
     const px = data.data;
 
@@ -186,7 +179,6 @@ function processDecode(img) {
     }
     tctx.putImageData(data, 0, 0);
 
-    /* Detect ghost frame */
     const frame = detectGhostFrame(tctx, temp.width, temp.height);
     if (!frame) {
         document.getElementById("decodeOutput").textContent =
@@ -232,35 +224,49 @@ function processDecode(img) {
 }
 
 /* ---------------------------------------------------------
-   Ghost Frame Detection
+   Ghost Frame Detection (Tolerant Mode B)
 --------------------------------------------------------- */
 
 function detectGhostFrame(ctx, w, h) {
-    const isGhost = (r,g,b) =>
-        r >= 220 && r <= 240 &&
-        g >= 220 && g <= 240 &&
-        b >= 220 && b <= 240;
+    const isGhostPixel = (r, g, b) => {
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        return lum >= 180 && lum <= 220;
+    };
+
+    const rowIsMostlyGhost = (y) => {
+        let ghostCount = 0;
+        for (let x = 0; x < w; x++) {
+            const px = ctx.getImageData(x, y, 1, 1).data;
+            if (isGhostPixel(px[0], px[1], px[2])) ghostCount++;
+        }
+        return ghostCount > w * 0.7;
+    };
+
+    const colIsMostlyGhost = (x) => {
+        let ghostCount = 0;
+        for (let y = 0; y < h; y++) {
+            const px = ctx.getImageData(x, y, 1, 1).data;
+            if (isGhostPixel(px[0], px[1], px[2])) ghostCount++;
+        }
+        return ghostCount > h * 0.7;
+    };
 
     let top = null, bottom = null, left = null, right = null;
 
     for (let y = 0; y < h; y++) {
-        const px = ctx.getImageData(0, y, 1, 1).data;
-        if (isGhost(px[0], px[1], px[2])) { top = y; break; }
+        if (rowIsMostlyGhost(y)) { top = y; break; }
     }
 
     for (let y = h - 1; y >= 0; y--) {
-        const px = ctx.getImageData(0, y, 1, 1).data;
-        if (isGhost(px[0], px[1], px[2])) { bottom = y; break; }
+        if (rowIsMostlyGhost(y)) { bottom = y; break; }
     }
 
     for (let x = 0; x < w; x++) {
-        const px = ctx.getImageData(x, 0, 1, 1).data;
-        if (isGhost(px[0], px[1], px[2])) { left = x; break; }
+        if (colIsMostlyGhost(x)) { left = x; break; }
     }
 
     for (let x = w - 1; x >= 0; x--) {
-        const px = ctx.getImageData(x, 0, 1, 1).data;
-        if (isGhost(px[0], px[1], px[2])) { right = x; break; }
+        if (colIsMostlyGhost(x)) { right = x; break; }
     }
 
     if (top === null || bottom === null || left === null || right === null)
