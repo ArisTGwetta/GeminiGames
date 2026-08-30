@@ -1,76 +1,179 @@
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    color-scheme: light;
+    --bg: #f5f3ee;
+    --panel: #fffdf8;
+    --text: #211f1b;
+    --muted: #6f695f;
+    --line: #d8d0c4;
+    --button: #23201c;
+    --buttonText: #fffdf8;
+    --buttonSoft: #ebe3d7;
+}
+
 body {
-    font-family: sans-serif;
-    padding: 20px;
-    max-width: 900px;
-    margin: auto;
+    min-height: 100vh;
+    margin: 0;
+    padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 17px;
+    line-height: 1.45;
 }
 
 h1 {
-    text-align: center;
-    margin-bottom: 30px;
+    max-width: 960px;
+    margin: 0 auto 18px;
+    font-size: clamp(28px, 8vw, 44px);
+    line-height: 1.05;
+}
+
+h2 {
+    margin: 0 0 14px;
+    font-size: clamp(22px, 5vw, 30px);
+    line-height: 1.15;
 }
 
 .section {
-    margin-bottom: 40px;
+    width: min(960px, 100%);
+    margin: 0 auto 18px;
+    padding: 18px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+}
+
+label {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--muted);
+    font-weight: 700;
+}
+
+select,
+textarea,
+button,
+input[type="file"] {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 8px;
+    font: inherit;
+}
+
+select,
+textarea,
+input[type="file"] {
+    margin-bottom: 14px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--text);
+}
+
+select {
+    padding: 0 12px;
 }
 
 textarea {
-    width: 100%;
-    height: 140px;
-    font-size: 20px;
-    padding: 16px;
-    margin-bottom: 15px;
-}
-
-canvas {
-    margin-top: 20px;
-    border: 1px solid #ccc;
-    image-rendering: pixelated;
+    display: block;
+    height: 132px;
+    padding: 12px;
+    resize: vertical;
 }
 
 button {
-    font-size: 20px;
-    padding: 14px 20px;
-    margin-top: 10px;
+    border: 0;
+    padding: 12px 14px;
+    background: var(--button);
+    color: var(--buttonText);
+    font-weight: 800;
+    touch-action: manipulation;
+}
+
+button:active {
+    transform: translateY(1px);
 }
 
 input[type="file"] {
-    font-size: 20px;
-    padding: 14px;
-    margin: 10px 0;
+    padding: 11px;
+}
+
+.buttonRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.canvasWrap {
+    width: 100%;
+    margin-top: 14px;
+    min-height: 120px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #cbc8bd;
+    -webkit-overflow-scrolling: touch;
+}
+
+canvas {
+    display: block;
+    max-width: none;
+    width: auto;
+    height: clamp(112px, 26vw, 154px);
+    image-rendering: pixelated;
 }
 
 pre {
-    background: #eee;
-    padding: 15px;
-    font-size: 20px;
+    min-height: 70px;
+    margin: 14px 0 0;
+    padding: 14px;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--buttonSoft);
+    color: var(--text);
+    font-size: 18px;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
-/* MOBILE APP MODE */
-@media (max-width: 900px) {
-    button.fullbtn,
-    input[type="file"].fullbtn {
-        width: 100%;
-        display: block;
+.status {
+    min-height: 24px;
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-weight: 650;
+}
+
+@media (min-width: 760px) {
+    body {
+        padding-top: 32px;
     }
 
-    textarea {
-        font-size: 22px;
-        padding: 18px;
+    .section {
+        padding: 24px;
+        margin-bottom: 24px;
     }
 
-    button {
-        font-size: 24px;
-        padding: 18px;
+    .buttonRow {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    body {
+        font-size: 18px;
     }
 
-    input[type="file"] {
-        font-size: 24px;
-        padding: 18px;
+    .section {
+        padding: 14px;
     }
 
-    canvas {
-        width: 100%;
-        height: auto;
+    .buttonRow {
+        grid-template-columns: 1fr;
     }
 }

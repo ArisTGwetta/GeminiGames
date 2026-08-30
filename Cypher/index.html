@@ -2,8 +2,9 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Universal Cipher / Decipher</title>
-<link rel="stylesheet" href="Styles.css">
+<link rel="stylesheet" href="Styles.css?v=2">
 </head>
 
 <body>
@@ -13,36 +14,44 @@
 <div class="section">
     <h2>Cipher (Text → Image)</h2>
 
-    <label>Font:</label>
+    <label for="cipherFont">Font</label>
     <select id="cipherFont"></select>
 
     <textarea id="cipherText" placeholder="Enter text here"></textarea>
 
     <button class="fullbtn" onclick="generateCipher()">Generate Image</button>
 
-    <canvas id="cipherCanvas"></canvas>
+    <div class="canvasWrap">
+        <canvas id="cipherCanvas"></canvas>
+    </div>
 
-    <button class="fullbtn" onclick="openCipherImage()">Open Image</button>
-    <button class="fullbtn" onclick="downloadCipherImage()">Download Image</button>
+    <div class="buttonRow">
+        <button class="fullbtn" onclick="shareCipherImage()">Share / Save Image</button>
+        <button class="fullbtn" onclick="copyCipherToClipboard()">Copy Image</button>
+        <button class="fullbtn" onclick="downloadCipherImage()">Download</button>
+        <button class="fullbtn" onclick="openCipherImage()">Open</button>
+    </div>
+
+    <p id="cipherStatus" class="status" aria-live="polite"></p>
 
 </div>
 
 <div class="section">
     <h2>Decipher (Image → Text)</h2>
 
-    <label>Font:</label>
+    <label for="decodeFont">Font</label>
     <select id="decodeFont"></select>
 
-    <button class="fullbtn" onclick="copyCipherToClipboard()">Copy to Clipboard</button>
-    <button class="fullbtn" onclick="saveCipherToPhotos()">Save to Photos</button>
+    <input type="file" id="decodeUpload" class="fullbtn" accept="image/*">
 
-    <input type="file" id="decodeUpload" class="fullbtn">
-
-    <button class="fullbtn" onclick="decodeImage()">Decode Image</button>
+    <div class="buttonRow">
+        <button class="fullbtn" onclick="decodeImage()">Decode Upload</button>
+        <button class="fullbtn" onclick="pasteImageFromClipboard()">Paste Image</button>
+    </div>
 
     <pre id="decodeOutput"></pre>
 </div>
 
-<script src="cipher.js"></script>
+<script src="cipher.js?v=2"></script>
 </body>
 </html>
