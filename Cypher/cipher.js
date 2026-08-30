@@ -30,6 +30,8 @@ window.onload = async () => {
 
 /* ---------------------------------------------------------
    Cipher (Text → Image)
+   - 16x16 glyphs
+   - 3px black frame around each glyph (stamp/block)
 --------------------------------------------------------- */
 
 function generateCipher() {
@@ -37,32 +39,51 @@ function generateCipher() {
     const text = document.getElementById("cipherText").value;
 
     const TILE = 16;
-    const PAD = 1;
+    const PAD = 1;          // inner padding
+    const FRAME = 3;        // black frame thickness around each glyph
 
     const canvas = document.getElementById("cipherCanvas");
     const ctx = canvas.getContext("2d");
 
     const chars = text.split("");
-    const width = chars.length * (TILE + PAD) + PAD;
-    const height = TILE + PAD * 2;
+
+    // Each glyph tile width: FRAME (left) + TILE + FRAME (right)
+    const tileWidth = FRAME + TILE + FRAME;
+    const tileHeight = FRAME + TILE + FRAME;
+
+    const width = chars.length * tileWidth + PAD * 2;
+    const height = tileHeight + PAD * 2;
 
     canvas.width = width;
     canvas.height = height;
 
-    // Consistent background color
+    // Consistent background color (ghost)
     ctx.fillStyle = "rgb(200,200,200)";
     ctx.fillRect(0, 0, width, height);
 
     chars.forEach((ch, i) => {
         const glyph = GLYPHS[font][ch.toUpperCase()] || GLYPHS[font][" "];
-        const x0 = PAD + i * (TILE + PAD);
+
+        const x0 = PAD + i * tileWidth;
         const y0 = PAD;
 
+        // Draw black frame (stamp block) around glyph
+        ctx.fillStyle = "black";
+
+        // Top frame
+        ctx.fillRect(x0, y0, tileWidth, FRAME);
+        // Bottom frame
+        ctx.fillRect(x0, y0 + FRAME + TILE, tileWidth, FRAME);
+        // Left frame
+        ctx.fillRect(x0, y0 + FRAME, FRAME, TILE);
+        // Right frame
+        ctx.fillRect(x0 + FRAME + TILE, y0 + FRAME, FRAME, TILE);
+
+        // Draw glyph inside frame
         for (let y = 0; y < TILE; y++) {
             for (let x = 0; x < TILE; x++) {
                 if (glyph[y][x] === 1) {
-                    ctx.fillStyle = "black";
-                    ctx.fillRect(x0 + x, y0 + y, 1, 1);
+                    ctx.fillRect(x0 + FRAME + x, y0 + FRAME + y, 1, 1);
                 }
             }
         }
@@ -162,6 +183,7 @@ function decodeImage() {
 
 function processDecode(img) {
     const TILE = 16;
+    const FRAME = 3;   // must match cipher frame thickness
 
     const temp = document.createElement("canvas");
     temp.width = img.width;
@@ -169,6 +191,7 @@ function processDecode(img) {
     const tctx = temp.getContext("2d", { willReadFrequently: true });
     tctx.drawImage(img, 0, 0);
 
+    // Aggressive threshold to black/white
     const data = tctx.getImageData(0, 0, temp.width, temp.height);
     const px = data.data;
 
@@ -179,6 +202,7 @@ function processDecode(img) {
     }
     tctx.putImageData(data, 0, 0);
 
+    // Detect outer ghost frame
     const frame = detectGhostFrame(tctx, temp.width, temp.height);
     if (!frame) {
         document.getElementById("decodeOutput").textContent =
@@ -200,17 +224,26 @@ function processDecode(img) {
     const font = document.getElementById("decodeFont").value;
     const fontGlyphs = GLYPHS[font];
 
-    const chars = Math.floor(w / (TILE + 1));
+    // Each tile width in the exported image:
+    // scaled: (FRAME + TILE + FRAME) * SCALE
+    // but we can infer tile width by scanning for vertical black frames.
+    // For now, assume original spacing: FRAME + TILE + FRAME + (no extra gap).
+    // We know the cipher used: tileWidth = FRAME + TILE + FRAME.
+    const tileWidth = FRAME + TILE + FRAME;
+
+    // We thresholded, so frames are pure black (0).
+    // We can detect tiles by stepping across width.
+    const chars = Math.floor((w - 2) / tileWidth); // small safety margin
     let result = "";
 
     for (let i = 0; i < chars; i++) {
-        const gx = i * (TILE + 1);
+        const gx = i * tileWidth + FRAME; // skip left frame
 
         const matrix = [];
         for (let y = 0; y < TILE; y++) {
             const row = [];
             for (let x = 0; x < TILE; x++) {
-                const px = cctx.getImageData(gx + x, 1 + y, 1, 1).data;
+                const px = cctx.getImageData(gx + x, FRAME + y, 1, 1).data;
                 row.push(px[0] < 128 ? 1 : 0);
             }
             matrix.push(row);
@@ -300,4 +333,17 @@ function matchGlyph(matrix, fontGlyphs) {
     }
 
     return best;
+}
+
+/* ---------------------------------------------------------
+   Optional: Clipboard paste hook (for future UI)
+--------------------------------------------------------- */
+
+// Example: you can attach this to a hidden textarea or the document
+// and call processDecodeFromClipboardImage(blob) when you detect an image.
+
+async function processDecodeFromClipboardImage(blob) {
+    const img = new Image();
+    img.onload = () => processDecode(img);
+    img.src = URL.createObjectURL(blob);
 }
