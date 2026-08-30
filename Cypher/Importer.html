@@ -1,27 +1,370 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Glyph Importer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Glyph Map Importer</title>
 <style>
-    body { font-family: sans-serif; padding: 20px; }
-    canvas { border: 1px solid #ccc; margin-top: 10px; }
-    pre { background: #eee; padding: 10px; }
+    * {
+        box-sizing: border-box;
+    }
+
+    :root {
+        --bg: #f4f1eb;
+        --panel: #fffdf8;
+        --ink: #211f1b;
+        --muted: #6d665c;
+        --line: #d9d0c3;
+        --button: #23201c;
+        --buttonText: #fffdf8;
+        --accent: #866d40;
+        --soft: #ece3d6;
+    }
+
+    body {
+        min-height: 100vh;
+        margin: 0;
+        padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+        background: var(--bg);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 16px;
+        line-height: 1.45;
+    }
+
+    h1 {
+        width: min(1160px, 100%);
+        margin: 0 auto 18px;
+        font-size: clamp(28px, 7vw, 44px);
+        line-height: 1.05;
+    }
+
+    h2 {
+        margin: 0 0 12px;
+        font-size: 22px;
+    }
+
+    .layout {
+        width: min(1160px, 100%);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 330px;
+        gap: 16px;
+        align-items: start;
+    }
+
+    .panel {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+    }
+
+    .controls {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    label {
+        display: block;
+        color: var(--muted);
+        font-weight: 750;
+    }
+
+    input,
+    textarea,
+    button {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 8px;
+        font: inherit;
+    }
+
+    input,
+    textarea {
+        margin-top: 6px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        padding: 9px 10px;
+    }
+
+    input[type="range"] {
+        padding: 0;
+    }
+
+    button {
+        border: 0;
+        padding: 10px 12px;
+        background: var(--button);
+        color: var(--buttonText);
+        font-weight: 800;
+        touch-action: manipulation;
+    }
+
+    button.secondary {
+        background: var(--soft);
+        color: var(--ink);
+    }
+
+    button:disabled {
+        opacity: 0.45;
+    }
+
+    .span2 {
+        grid-column: span 2;
+    }
+
+    .span3 {
+        grid-column: span 3;
+    }
+
+    .workspace {
+        position: relative;
+        overflow: auto;
+        min-height: 360px;
+        max-height: 72vh;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #d4d0c6;
+        touch-action: none;
+    }
+
+    #sourceCanvas {
+        display: block;
+        image-rendering: auto;
+        transform-origin: top left;
+    }
+
+    #cropBox {
+        position: absolute;
+        display: none;
+        border: 2px solid var(--accent);
+        background: rgba(134, 109, 64, 0.12);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.18);
+        cursor: move;
+        touch-action: none;
+    }
+
+    .handle {
+        position: absolute;
+        right: -8px;
+        bottom: -8px;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: nwse-resize;
+    }
+
+    .previewGrid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    #preview {
+        width: 256px;
+        height: 256px;
+        max-width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+        image-rendering: pixelated;
+    }
+
+    .buttonStack {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .candidates {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+        gap: 8px;
+        max-height: 180px;
+        overflow: auto;
+    }
+
+    .candidate {
+        min-height: 58px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        font-size: 13px;
+    }
+
+    .glyphList {
+        display: grid;
+        gap: 8px;
+        max-height: 220px;
+        overflow: auto;
+    }
+
+    .glyphItem {
+        display: grid;
+        grid-template-columns: 48px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .glyphItem canvas {
+        width: 48px;
+        height: 48px;
+        image-rendering: pixelated;
+    }
+
+    .glyphItem button {
+        width: auto;
+        min-height: 36px;
+        padding: 7px 10px;
+    }
+
+    pre {
+        max-height: 260px;
+        margin: 12px 0 0;
+        padding: 12px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .status {
+        min-height: 24px;
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-weight: 650;
+    }
+
+    @media (max-width: 900px) {
+        .layout {
+            grid-template-columns: 1fr;
+        }
+
+        .controls {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .span2,
+        .span3 {
+            grid-column: span 2;
+        }
+
+        .workspace {
+            min-height: 320px;
+            max-height: 58vh;
+        }
+    }
+
+    @media (max-width: 520px) {
+        body {
+            font-size: 17px;
+        }
+
+        .controls,
+        .buttonStack {
+            grid-template-columns: 1fr;
+        }
+
+        .span2,
+        .span3 {
+            grid-column: span 1;
+        }
+    }
 </style>
 </head>
 
 <body>
+<h1>Glyph Map Importer</h1>
 
-<h2>Glyph Importer</h2>
+<main class="layout">
+    <section class="panel">
+        <div class="controls">
+            <label class="span2">Glyph map
+                <input type="file" id="mapUpload" accept="image/*">
+            </label>
 
-<input type="file" id="upload">
-<button onclick="processGlyph()">Import & Convert</button>
+            <label class="span2">Existing JSON
+                <input type="file" id="jsonUpload" accept="application/json,.json">
+            </label>
 
-<canvas id="preview"></canvas>
+            <label>Font name
+                <input id="fontName" value="NewFont">
+            </label>
 
-<h3>Generated 16×16 Matrix</h3>
-<pre id="output"></pre>
+            <label>Glyph name
+                <input id="glyphName" placeholder="A, ch, !">
+            </label>
 
-<script src="importer.js"></script>
+            <label>Zoom
+                <input type="range" id="zoom" min="25" max="300" value="100">
+            </label>
+
+            <label>Threshold
+                <input type="range" id="threshold" min="40" max="230" value="150">
+            </label>
+
+            <label class="span3">Name queue
+                <textarea id="nameQueue" rows="2" placeholder="A B C D E F ..."></textarea>
+            </label>
+
+            <button id="autoDetectBtn" class="span2">Auto-Propose</button>
+            <button id="autoDetectCropBtn" class="span2 secondary">Propose In Box</button>
+            <button id="trimBtn" class="secondary">Trim Box</button>
+            <button id="invertBtn" class="secondary">Invert</button>
+        </div>
+
+        <div id="workspace" class="workspace">
+            <canvas id="sourceCanvas"></canvas>
+            <div id="cropBox"><div class="handle"></div></div>
+        </div>
+        <p id="status" class="status" aria-live="polite"></p>
+    </section>
+
+    <aside class="panel previewGrid">
+        <section>
+            <h2>Current Glyph</h2>
+            <canvas id="preview" width="256" height="256"></canvas>
+            <div class="buttonStack">
+                <button id="addBtn">Add Glyph</button>
+                <button id="nextNameBtn" class="secondary">Next Name</button>
+            </div>
+        </section>
+
+        <section>
+            <h2>Proposals</h2>
+            <div id="candidates" class="candidates"></div>
+        </section>
+
+        <section>
+            <h2>Captured</h2>
+            <div id="glyphList" class="glyphList"></div>
+        </section>
+
+        <section>
+            <h2>Export</h2>
+            <div class="buttonStack">
+                <button id="showJsonBtn">Show JSON</button>
+                <button id="copyJsonBtn" class="secondary">Copy JSON</button>
+                <button id="downloadJsonBtn" class="secondary">Download JSON</button>
+                <button id="clearFontBtn" class="secondary">Clear</button>
+            </div>
+            <pre id="output"></pre>
+        </section>
+    </aside>
+</main>
+
+<script src="importer.js?v=2"></script>
 </body>
 </html>
